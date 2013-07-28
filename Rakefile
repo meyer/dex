@@ -12,9 +12,12 @@ EXT_FILES = ['jquery.js','main.coffee']
 EXT_WHITELIST = ['http://*/*','https://*/*']
 EXT_ICONS = [48,128]
 
+version = 1.0
+git_offset = 1
+
 @ext_version = [
-	`cat "./source/version.txt"`, # Hard-coded version…
-	`git rev-list HEAD | wc -l | xargs -n1 printf %d` # …plus git commit number
+	version.to_s,
+	(`git rev-list HEAD | wc -l | xargs -n1 printf %d`.to_i - git_offset).to_s
 ].join('.')
 
 EXT_SOURCE_DIR = './source/extension'
@@ -64,6 +67,8 @@ def launchd_worked(launch_output)
 end
 
 task :default => 'daemon:install'
+
+task :release => ['extension:build_release', 'daemon:build']
 
 namespace :daemon do
 	desc 'Install dex daemon'
