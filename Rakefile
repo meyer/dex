@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 EXT_NAME = 'dex'
+EXT_VERSION = '1.0.1'
 
 EXT_DISPLAY_NAME = 'Dex'
 EXT_DESC = IO.read('./source/extension/description.txt')
@@ -10,14 +11,6 @@ EXT_AUTHOR = 'Mike Meyer'
 EXT_BUNDLE_ID = 'fm.meyer.dex'
 EXT_FILES = ['jquery.js','main.coffee']
 EXT_WHITELIST = ['http://*/*','https://*/*']
-
-version = 1.0
-git_offset = 1
-
-@ext_version = [
-	version.to_s,
-	(`git rev-list HEAD | wc -l | xargs -n1 printf %d`.to_i - git_offset).to_s
-].join('.')
 EXT_ICONS = [32,48,64,96,128]
 
 EXT_SOURCE_DIR = './source/extension'
