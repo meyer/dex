@@ -29,7 +29,7 @@ SERVER_SOURCE_DIR = './source'
 SERVER_RELEASE_DIR = './bin'
 
 LAUNCHAGENT_SRC_FILENAME = 'launchagent.xml'
-LAUNCHAGENT_SRC_FILE = File.join(SERVER_RELEASE_DIR, LAUNCHAGENT_SRC_FILENAME)
+LAUNCHAGENT_SRC_FILE = File.join(TEMP_DIR, LAUNCHAGENT_SRC_FILENAME)
 LAUNCHAGENT_DEST_DIR = File.expand_path('~/Library/LaunchAgents')
 LAUNCHAGENT_DEST_FILE = File.join(LAUNCHAGENT_DEST_DIR, "#{EXT_BUNDLE_ID}.plist")
 
@@ -52,7 +52,16 @@ def launchd_worked(launch_output)
 	if launch_output.strip!
 		# puts 'launchctl error: '.console_red+launch_output
 		if launch_output.include? 'No such file'
-			puts '✗ dex daemon is not installed'
+			puts '✗ dex daemon is not installed'.console_red
+		elsif launch_output.include? 'Already loaded'
+			puts '✔ dex daemon is already running'.console_green
+		elsif launch_output.include? 'Error unloading'
+			puts '✔ dex daemon is already stopped'.console_green
+		elsif launch_output.include? 'no plist was returned for'
+			puts '✗ launch agent file is blank'
+		else
+			puts '✗ launchctl error: '.console_red+launch_output.sub('launchctl: ','')
+			exit 1
 		end
 		return false
 	end
@@ -76,7 +85,7 @@ namespace :daemon do
 	desc 'Check permissions and create missing folders'
 	task :preflight => :no_root do
 		puts
-		[DAEMON_DEST_DIR, LAUNCHAGENT_DEST_DIR].each do |folder|
+		[DAEMON_DEST_DIR, LAUNCHAGENT_DEST_DIR, DEX_DIR].each do |folder|
 			perms_issue = 0
 			puts folder.console_bold.console_underline
 			begin
@@ -166,7 +175,6 @@ namespace :daemon do
 	desc "Build dex daemon to #{SERVER_RELEASE_DIR}"
 	task :build do
 		puts '',"Building dex daemon to #{SERVER_RELEASE_DIR}".console_underline.console_bold
-		erb_crunch(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 		erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 		puts
 	end
@@ -233,6 +241,7 @@ namespace :daemon do
 			rm LAUNCHAGENT_DEST_FILE
 			puts "✔ Removed "+LAUNCHAGENT_DEST_FILE.console_bold
 		else
+			puts "✗ #{LAUNCHAGENT_DEST_FILE.console_bold} does not exist."
 			++not_installed
 		end
 
@@ -240,6 +249,7 @@ namespace :daemon do
 			rm DAEMON_DEST_FILE
 			puts "✔ Removed "+DAEMON_DEST_FILE.console_bold
 		else
+			puts "✗ #{DAEMON_DEST_FILE.console_bold} does not exist."
 			++not_installed
 		end
 
@@ -283,10 +293,14 @@ namespace :daemon do
 		end
 	end
 
-	task :server_files_exist do
-		if !File.exist?(DAEMON_SRC_FILE) or !File.exist?(LAUNCHAGENT_SRC_FILE)
-			puts '✗ dex daemon files haven’t been built! Run rake daemon:build.'.console_red,''
-			exit 1
+	task :rebuild_files_maybe do
+		if !File.exist?(LAUNCHAGENT_SRC_FILE)
+			puts "✔ built launch agent file because it didn’t exist."
+			erb_crunch(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, TEMP_DIR)
+		end
+		if !File.exist?(DAEMON_SRC_FILE)
+			puts "✔ built dex daemon because it didn’t exist."
+			erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 		end
 	end
 
