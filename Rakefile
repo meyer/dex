@@ -166,6 +166,7 @@ namespace :daemon do
 
 		begin
 			if answer = $stdin.gets.chomp.downcase =~ /y/
+				puts
 			else
 				# raise Interrupt
 				puts 'See ya.',''
@@ -210,13 +211,15 @@ namespace :daemon do
 	end
 
 	task :finish_link => [:start,:set_daemon_permissions] do
+		puts
 		if dex_running()
-			puts '', "✔ dex daemon link complete!".console_green
-			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL.", ''
+			puts "✔ dex daemon link complete!".console_green
+			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL."
 		else
-			puts '', "✗ dex daemon link failed".console_red
+			puts "✗ dex daemon link failed".console_red
 			puts 'Gosh, uh… this is awkward. I wish I knew what to tell you.'
 		end
+		puts
 	end
 
 	task :finish_install => [:start,:set_daemon_permissions] do
@@ -260,7 +263,7 @@ namespace :daemon do
 			rm LAUNCHAGENT_DEST_FILE
 			puts "✔ Removed "+LAUNCHAGENT_DEST_FILE.console_bold
 		else
-			puts "✗ #{LAUNCHAGENT_DEST_FILE.console_bold} does not exist."
+			puts "✗ #{LAUNCHAGENT_DEST_FILE.console_bold} does not exist"
 			++not_installed
 		end
 
@@ -268,17 +271,19 @@ namespace :daemon do
 			rm DAEMON_DEST_FILE
 			puts "✔ Removed "+DAEMON_DEST_FILE.console_bold
 		else
-			puts "✗ #{DAEMON_DEST_FILE.console_bold} does not exist."
+			puts "✗ #{DAEMON_DEST_FILE.console_bold} does not exist"
 			++not_installed
 		end
 
+		puts
+
 		if not_installed > 0
-			puts "✔ Successfully cleaned up dex remnants.".console_green
+			puts "✔ Successfully cleaned up dex remnants!".console_green
 		else
-			puts "✔ Successfully uninstalled dex daemon.".console_green
+			puts "✔ Successfully uninstalled dex daemon!".console_green
 		end
 
-		puts "• Your #{DEX_DIR} folder was not touched.",''
+		puts "Your #{DEX_DIR} folder was not touched.",''
 	end
 
 	desc 'Stop dex daemon'
@@ -291,8 +296,8 @@ namespace :daemon do
 	desc 'Start dex daemon'
 	task :start => [:no_root, :require_daemon_install] do
 		if launchd_worked(`launchctl load -w #{LAUNCHAGENT_DEST_FILE} 2>&1`)
+			sleep 1
 			puts "✔ Started dex daemon"
-			sleep 2
 		end
 	end
 
@@ -304,7 +309,7 @@ namespace :daemon do
 
 	task :require_daemon_install do
 		if !File.exist?(DAEMON_DEST_FILE) and !File.exist?(LAUNCHAGENT_DEST_FILE)
-			puts "✗ dex daemon is not installed".console_red
+			puts "✗ Existing dex installation was not found".console_red
 			exit 1
 		elsif !File.exist?(DAEMON_DEST_FILE) or !File.exist?(LAUNCHAGENT_DEST_FILE)
 			puts 'Incomplete dex installation found. Run daemon:install to fix.'.console_red
@@ -313,10 +318,10 @@ namespace :daemon do
 	end
 
 	task :rebuild_files do
-		puts "✔ built launch agent source file."
+		puts "✔ Built launch agent source file"
 		erb_crunch(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 
-		puts "✔ built dex daemon source file."
+		puts "✔ Built dex daemon source file"
 		erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 	end
 
