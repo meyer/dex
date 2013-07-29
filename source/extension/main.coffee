@@ -1,5 +1,5 @@
 dexfile = window.location.host.replace 'www.', ''
-address = '<%= DEX_URL %>'
+address = '<%= DEX_URL %>/'
 
 # Don’t load on iframed content (like buttons and whatnot)
 # Idea: load different stylesheets if iframed? Alas, poor webrick.

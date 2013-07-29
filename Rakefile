@@ -15,10 +15,9 @@ EXT_ICONS = [32,48,64,96,128]
 
 EXT_SOURCE_DIR = './source/extension'
 EXT_CERT_DIR = '../certificates'
-EXT_BUILD_PREFIX = "#{EXT_NAME}-#{@ext_version}"
 EXT_RELEASE_DIR = './bin'
 
-TEMP_DIR = './temp'
+TEMP_DIR = './build'
 
 # Server Config
 DEX_DIR = File.join(ENV['HOME'], '.dex/')
@@ -26,13 +25,13 @@ DEX_PORT = 3131
 DEX_DAEMON = 'dexd'
 DEX_HOSTNAME = 'localhost'
 
-DEX_URL = "https://#{DEX_HOSTNAME}:#{DEX_PORT}/"
+DEX_URL = "https://#{DEX_HOSTNAME}:#{DEX_PORT}"
 
 SERVER_SOURCE_DIR = './source'
-SERVER_RELEASE_DIR = './bin'
+SERVER_RELEASE_DIR = TEMP_DIR
 
 LAUNCHAGENT_SRC_FILENAME = 'launchagent.xml'
-LAUNCHAGENT_SRC_FILE = File.join(TEMP_DIR, LAUNCHAGENT_SRC_FILENAME)
+LAUNCHAGENT_SRC_FILE = File.join(SERVER_RELEASE_DIR, LAUNCHAGENT_SRC_FILENAME)
 LAUNCHAGENT_DEST_DIR = File.expand_path('~/Library/LaunchAgents')
 LAUNCHAGENT_DEST_FILE = File.join(LAUNCHAGENT_DEST_DIR, "#{EXT_BUNDLE_ID}.plist")
 
@@ -193,24 +192,27 @@ namespace :daemon do
 		end
 	end
 
-	task :link_daemon => [:quick_uninstall, :rebuild_files_maybe] do
+	task :link_daemon => [:quick_uninstall, :rebuild_files] do
+		# Copy latest launchagent.xml
 		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
+		# Link daemon from TEMP_DIR
 		ln_s File.expand_path(DAEMON_SRC_FILE), DAEMON_DEST_FILE
+		# Make sure daemon is executable
 		chmod 0755, DAEMON_SRC_FILE
 		puts "✔ Linked dex daemon"
 	end
 
-	task :install_daemon => [:quick_uninstall, :rebuild_files_maybe] do
+	task :install_daemon => [:quick_uninstall, :rebuild_files] do
 		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
 		cp DAEMON_SRC_FILE, DAEMON_DEST_FILE, :preserve => true
-		chmod 0755, DAEMON_SRC_FILE
+		chmod 0755, DAEMON_DEST_FILE
 		puts "✔ Copied dex daemon files"
 	end
 
 	task :finish_link => [:start,:set_daemon_permissions] do
 		if dex_running()
 			puts '', "✔ dex daemon link complete!".console_green
-			puts "Open #{DEX_URL} in your browser to enable SSL", ''
+			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL.", ''
 		else
 			puts '', "✗ dex daemon link failed".console_red
 			puts 'Gosh, uh… this is awkward. I wish I knew what to tell you.'
@@ -220,7 +222,7 @@ namespace :daemon do
 	task :finish_install => [:start,:set_daemon_permissions] do
 		if dex_running()
 			puts '', "✔ dex daemon installation complete!".console_green
-			puts "Open #{DEX_URL} in your browser to enable SSL", ''
+			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL.", ''
 		else
 			puts '', "✗ dex daemon installation failed".console_red
 			puts 'Gosh, uh… this is awkward. I wish I knew what to tell you.'
@@ -310,15 +312,12 @@ namespace :daemon do
 		end
 	end
 
-	task :rebuild_files_maybe do
-		if !File.exist?(LAUNCHAGENT_SRC_FILE)
-			puts "✔ built launch agent file because it didn’t exist."
-			erb_crunch(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, TEMP_DIR)
-		end
-		if !File.exist?(DAEMON_SRC_FILE)
-			puts "✔ built dex daemon because it didn’t exist."
-			erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
-		end
+	task :rebuild_files do
+		puts "✔ built launch agent source file."
+		erb_crunch(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
+
+		puts "✔ built dex daemon source file."
+		erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 	end
 
 	task :no_root do
