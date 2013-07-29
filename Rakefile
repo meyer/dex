@@ -10,7 +10,6 @@ EXT_AUTHOR = 'Mike Meyer'
 EXT_BUNDLE_ID = 'fm.meyer.dex'
 EXT_FILES = ['jquery.js','main.coffee']
 EXT_WHITELIST = ['http://*/*','https://*/*']
-EXT_ICONS = [48,128]
 
 version = 1.0
 git_offset = 1
@@ -19,6 +18,7 @@ git_offset = 1
 	version.to_s,
 	(`git rev-list HEAD | wc -l | xargs -n1 printf %d`.to_i - git_offset).to_s
 ].join('.')
+EXT_ICONS = [32,48,64,96,128]
 
 EXT_SOURCE_DIR = './source/extension'
 EXT_CERT_DIR = '../certificates'
