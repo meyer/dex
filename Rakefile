@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 EXT_NAME = 'dex'
+EXT_VERSION = '1.0.1'
 
 EXT_DISPLAY_NAME = 'Dex'
 EXT_DESC = IO.read('./source/extension/description.txt')
@@ -10,30 +11,24 @@ EXT_AUTHOR = 'Mike Meyer'
 EXT_BUNDLE_ID = 'fm.meyer.dex'
 EXT_FILES = ['jquery.js','main.coffee']
 EXT_WHITELIST = ['http://*/*','https://*/*']
-EXT_ICONS = [48,128]
-
-version = 1.0
-git_offset = 1
-
-@ext_version = [
-	version.to_s,
-	(`git rev-list HEAD | wc -l | xargs -n1 printf %d`.to_i - git_offset).to_s
-].join('.')
+EXT_ICONS = [32,48,64,96,128]
 
 EXT_SOURCE_DIR = './source/extension'
 EXT_CERT_DIR = '../certificates'
-EXT_BUILD_PREFIX = "#{EXT_NAME}-#{@ext_version}"
 EXT_RELEASE_DIR = './bin'
 
-TEMP_DIR = './temp'
+TEMP_DIR = './build'
 
 # Server Config
 DEX_DIR = File.join(ENV['HOME'], '.dex/')
 DEX_PORT = 3131
 DEX_DAEMON = 'dexd'
+DEX_HOSTNAME = 'localhost'
+
+DEX_URL = "https://#{DEX_HOSTNAME}:#{DEX_PORT}"
 
 SERVER_SOURCE_DIR = './source'
-SERVER_RELEASE_DIR = './bin'
+SERVER_RELEASE_DIR = TEMP_DIR
 
 LAUNCHAGENT_SRC_FILENAME = 'launchagent.xml'
 LAUNCHAGENT_SRC_FILE = File.join(SERVER_RELEASE_DIR, LAUNCHAGENT_SRC_FILENAME)
@@ -52,14 +47,23 @@ load 'utils/helpers.rb'
 load 'utils/build.rb'
 
 def dex_running()
-	return system("curl -k https://localhost:#{DEX_PORT} &> /dev/null")
+	return system("curl -k #{DEX_URL} &> /dev/null")
 end
 
 def launchd_worked(launch_output)
 	if launch_output.strip!
 		# puts 'launchctl error: '.console_red+launch_output
 		if launch_output.include? 'No such file'
-			puts '✗ dex daemon is not installed'
+			puts '✗ dex daemon is not installed'.console_red
+		elsif launch_output.include? 'Already loaded'
+			puts '✔ dex daemon is already running'.console_green
+		elsif launch_output.include? 'Error unloading'
+			puts '✔ dex daemon is already stopped'.console_green
+		elsif launch_output.include? 'no plist was returned for'
+			puts '✗ launch agent file is blank'
+		else
+			puts '✗ launchctl error: '.console_red+launch_output.sub('launchctl: ','')
+			exit 1
 		end
 		return false
 	end
@@ -67,12 +71,15 @@ def launchd_worked(launch_output)
 end
 
 task :default => 'daemon:install'
-
 task :release => ['extension:build_release', 'daemon:build']
+task :dev => ['extension:build_dev', 'daemon:build', 'daemon:link']
 
 namespace :daemon do
 	desc 'Install dex daemon'
 	task :install => [:preflight, :confirm_install, :install_daemon, :finish_install]
+
+	desc 'Link dex daemon'
+	task :link => [:preflight, :stop, :link_daemon, :finish_link]
 
 	desc 'Build and install dex daemon'
 	task :build_and_install => [:preflight, :confirm_install, :build, :install_daemon, :finish_install]
@@ -83,7 +90,7 @@ namespace :daemon do
 	desc 'Check permissions and create missing folders'
 	task :preflight => :no_root do
 		puts
-		[DAEMON_DEST_DIR, LAUNCHAGENT_DEST_DIR].each do |folder|
+		[DAEMON_DEST_DIR, LAUNCHAGENT_DEST_DIR, DEX_DIR].each do |folder|
 			perms_issue = 0
 			puts folder.console_bold.console_underline
 			begin
@@ -159,6 +166,7 @@ namespace :daemon do
 
 		begin
 			if answer = $stdin.gets.chomp.downcase =~ /y/
+				puts
 			else
 				# raise Interrupt
 				puts 'See ya.',''
@@ -173,36 +181,51 @@ namespace :daemon do
 	desc "Build dex daemon to #{SERVER_RELEASE_DIR}"
 	task :build do
 		puts '',"Building dex daemon to #{SERVER_RELEASE_DIR}".console_underline.console_bold
-		erb_crunch(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 		erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 		puts
 	end
 
-	task :link_daemon => :server_files_exist do
-		ln_s LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE
-		ln_s DAEMON_SRC_FILE, DAEMON_DEST_FILE
-	end
-
-	task :install_daemon => [:stop, :server_files_exist] do
-		# Quick uninstall
+	task :quick_uninstall => [:stop] do
 		if File.exist?(LAUNCHAGENT_DEST_FILE) or File.exist?(DAEMON_DEST_FILE)
 			rm LAUNCHAGENT_DEST_FILE, :force => true
 			rm DAEMON_DEST_FILE, :force => true
-			puts "✔ Removed existing dex install"
+			puts "✔ Removed existing dex files"
 		end
+	end
 
+	task :link_daemon => [:quick_uninstall, :rebuild_files] do
+		# Copy latest launchagent.xml
+		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
+		# Link daemon from TEMP_DIR
+		ln_s File.expand_path(DAEMON_SRC_FILE), DAEMON_DEST_FILE
+		# Make sure daemon is executable
+		chmod 0755, DAEMON_SRC_FILE
+		puts "✔ Linked dex daemon"
+	end
+
+	task :install_daemon => [:quick_uninstall, :rebuild_files] do
 		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
 		cp DAEMON_SRC_FILE, DAEMON_DEST_FILE, :preserve => true
+		chmod 0755, DAEMON_DEST_FILE
 		puts "✔ Copied dex daemon files"
 	end
 
-	task :finish_install => [:start,:set_daemon_permissions] do
-		mkdir_p DEX_DIR
-		chmod 0755, DEX_DIR
+	task :finish_link => [:start,:set_daemon_permissions] do
+		puts
+		if dex_running()
+			puts "✔ dex daemon link complete!".console_green
+			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL."
+		else
+			puts "✗ dex daemon link failed".console_red
+			puts 'Gosh, uh… this is awkward. I wish I knew what to tell you.'
+		end
+		puts
+	end
 
+	task :finish_install => [:start,:set_daemon_permissions] do
 		if dex_running()
 			puts '', "✔ dex daemon installation complete!".console_green
-			puts "Open https://localhost:#{DEX_PORT} in your browser to enable SSL", ''
+			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL.", ''
 		else
 			puts '', "✗ dex daemon installation failed".console_red
 			puts 'Gosh, uh… this is awkward. I wish I knew what to tell you.'
@@ -240,6 +263,7 @@ namespace :daemon do
 			rm LAUNCHAGENT_DEST_FILE
 			puts "✔ Removed "+LAUNCHAGENT_DEST_FILE.console_bold
 		else
+			puts "✗ #{LAUNCHAGENT_DEST_FILE.console_bold} does not exist"
 			++not_installed
 		end
 
@@ -247,16 +271,19 @@ namespace :daemon do
 			rm DAEMON_DEST_FILE
 			puts "✔ Removed "+DAEMON_DEST_FILE.console_bold
 		else
+			puts "✗ #{DAEMON_DEST_FILE.console_bold} does not exist"
 			++not_installed
 		end
 
+		puts
+
 		if not_installed > 0
-			puts "✔ Successfully cleaned up dex remnants.".console_green
+			puts "✔ Successfully cleaned up dex remnants!".console_green
 		else
-			puts "✔ Successfully uninstalled dex daemon.".console_green
+			puts "✔ Successfully uninstalled dex daemon!".console_green
 		end
 
-		puts "• Your #{DEX_DIR} folder was not touched.",''
+		puts "Your #{DEX_DIR} folder was not touched.",''
 	end
 
 	desc 'Stop dex daemon'
@@ -269,8 +296,8 @@ namespace :daemon do
 	desc 'Start dex daemon'
 	task :start => [:no_root, :require_daemon_install] do
 		if launchd_worked(`launchctl load -w #{LAUNCHAGENT_DEST_FILE} 2>&1`)
+			sleep 1
 			puts "✔ Started dex daemon"
-			sleep 2
 		end
 	end
 
@@ -282,7 +309,7 @@ namespace :daemon do
 
 	task :require_daemon_install do
 		if !File.exist?(DAEMON_DEST_FILE) and !File.exist?(LAUNCHAGENT_DEST_FILE)
-			puts "✗ dex daemon is not installed".console_red
+			puts "✗ Existing dex installation was not found".console_red
 			exit 1
 		elsif !File.exist?(DAEMON_DEST_FILE) or !File.exist?(LAUNCHAGENT_DEST_FILE)
 			puts 'Incomplete dex installation found. Run daemon:install to fix.'.console_red
@@ -290,11 +317,12 @@ namespace :daemon do
 		end
 	end
 
-	task :server_files_exist do
-		if !File.exist?(DAEMON_SRC_FILE) or !File.exist?(LAUNCHAGENT_SRC_FILE)
-			puts '✗ dex daemon files haven’t been built! Run rake daemon:build.'.console_red,''
-			exit 1
-		end
+	task :rebuild_files do
+		puts "✔ Built launch agent source file"
+		erb_crunch(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
+
+		puts "✔ Built dex daemon source file"
+		erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 	end
 
 	task :no_root do
