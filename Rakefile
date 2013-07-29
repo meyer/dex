@@ -24,6 +24,9 @@ TEMP_DIR = './temp'
 DEX_DIR = File.join(ENV['HOME'], '.dex/')
 DEX_PORT = 3131
 DEX_DAEMON = 'dexd'
+DEX_HOSTNAME = 'localhost'
+
+DEX_URL = "https://#{DEX_HOSTNAME}:#{DEX_PORT}/"
 
 SERVER_SOURCE_DIR = './source'
 SERVER_RELEASE_DIR = './bin'
@@ -45,7 +48,7 @@ load 'utils/helpers.rb'
 load 'utils/build.rb'
 
 def dex_running()
-	return system("curl -k https://localhost:#{DEX_PORT} &> /dev/null")
+	return system("curl -k #{DEX_URL} &> /dev/null")
 end
 
 def launchd_worked(launch_output)
@@ -69,12 +72,15 @@ def launchd_worked(launch_output)
 end
 
 task :default => 'daemon:install'
-
 task :release => ['extension:build_release', 'daemon:build']
+task :dev => ['extension:build_dev', 'daemon:build', 'daemon:link']
 
 namespace :daemon do
 	desc 'Install dex daemon'
 	task :install => [:preflight, :confirm_install, :install_daemon, :finish_install]
+
+	desc 'Link dex daemon'
+	task :link => [:preflight, :stop, :link_daemon, :finish_link]
 
 	desc 'Build and install dex daemon'
 	task :build_and_install => [:preflight, :confirm_install, :build, :install_daemon, :finish_install]
@@ -179,31 +185,42 @@ namespace :daemon do
 		puts
 	end
 
-	task :link_daemon => :server_files_exist do
-		ln_s LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE
-		ln_s DAEMON_SRC_FILE, DAEMON_DEST_FILE
-	end
-
-	task :install_daemon => [:stop, :server_files_exist] do
-		# Quick uninstall
+	task :quick_uninstall => [:stop] do
 		if File.exist?(LAUNCHAGENT_DEST_FILE) or File.exist?(DAEMON_DEST_FILE)
 			rm LAUNCHAGENT_DEST_FILE, :force => true
 			rm DAEMON_DEST_FILE, :force => true
-			puts "✔ Removed existing dex install"
+			puts "✔ Removed existing dex files"
 		end
+	end
 
+	task :link_daemon => [:quick_uninstall, :rebuild_files_maybe] do
+		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
+		ln_s File.expand_path(DAEMON_SRC_FILE), DAEMON_DEST_FILE
+		chmod 0755, DAEMON_SRC_FILE
+		puts "✔ Linked dex daemon"
+	end
+
+	task :install_daemon => [:quick_uninstall, :rebuild_files_maybe] do
 		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
 		cp DAEMON_SRC_FILE, DAEMON_DEST_FILE, :preserve => true
+		chmod 0755, DAEMON_SRC_FILE
 		puts "✔ Copied dex daemon files"
 	end
 
-	task :finish_install => [:start,:set_daemon_permissions] do
-		mkdir_p DEX_DIR
-		chmod 0755, DEX_DIR
+	task :finish_link => [:start,:set_daemon_permissions] do
+		if dex_running()
+			puts '', "✔ dex daemon link complete!".console_green
+			puts "Open #{DEX_URL} in your browser to enable SSL", ''
+		else
+			puts '', "✗ dex daemon link failed".console_red
+			puts 'Gosh, uh… this is awkward. I wish I knew what to tell you.'
+		end
+	end
 
+	task :finish_install => [:start,:set_daemon_permissions] do
 		if dex_running()
 			puts '', "✔ dex daemon installation complete!".console_green
-			puts "Open https://localhost:#{DEX_PORT} in your browser to enable SSL", ''
+			puts "Open #{DEX_URL} in your browser to enable SSL", ''
 		else
 			puts '', "✗ dex daemon installation failed".console_red
 			puts 'Gosh, uh… this is awkward. I wish I knew what to tell you.'
