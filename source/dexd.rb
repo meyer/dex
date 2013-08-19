@@ -31,46 +31,63 @@ Dir.chdir(DEX_DIR)
 require 'webrick'
 require 'webrick/https'
 
+index_template = <<-index_template
+<%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
+index_template
+
 server_object = Class.new(WEBrick::HTTPServlet::AbstractServlet) do
 	def do_GET(request, response)
-		response.body = '/* DEX */'
-		filename, sep, ext = request.path.gsub('/', '').rpartition('.')
+		path = request.path.gsub!(/^\//,'')
 
-		return if filename.include? 'localhost'
+		# Won’t match non-dot URLs (ex: localhost) or URLs with port numbers
+		/^(?<url>[\w\-_]+\.[\w\-_\.]+)\.(?<ext>css|html|json|js)$/ =~ path
 
-		unless ext == ''
-			if ext == 'css'
-				response['Content-Type'] = 'text/css; charset=utf-8'
-			elsif ext == 'js'
-				response['Content-Type'] = 'application/javascript; charset=utf-8'
-			else
-				response.body = "no .#{ext} file 4 u"
-				return
+		if Regexp.last_match
+			url = Regexp.last_match[:url]
+			ext = Regexp.last_match[:ext]
+
+			content_types = {
+				'css' => 'text/css',
+				'html' => 'text/html',
+				'json' => 'application/json',
+				'js' => 'application/javascript'
+			}
+			response['Content-Type'] = content_types[ext]+"; charset=utf-8"
+
+			if ext == 'css' || ext == 'js'
+				body = build_body(path, ext, url)
+				response.status = body.empty? ? 204 : 200
+				response.body = "/* dex #{DEX_VERSION} */\n"+body
+			elsif ext == 'html'
+				puts "HTML PAGE FOR #{url}".console_green
+			elsif ext == 'json'
+				puts "JSON RESPONSE FOR #{url}".console_green
 			end
-		else
-			response.body = 'wat r u looking @'
+
 			return
+
+		elsif path == ''
+			puts 'INDEX PAGE'
+		else
+			puts "404: #{path} not found".console_red
+			response.status = 404
+			response['Content-Type'] = "text/plain; charset=utf-8"
+			response.body = "`#{path}` does not exist."
 		end
-
-		body = build_body(request.path, ext, filename)
-		response.status = body.empty? ? 204 : 200
-
-		response.body = body
 	end
 
 	def build_body(path, ext, filename)
 		# files in ~/.dex/ and ~/.dex/example.com/, dex first
 		files = Dir.glob "{*.#{ext},#{filename}/*.#{ext}}"
 
-		# Move dex to the front of the array, if it existed.
-		if files.delete "dex.#{ext}"
-			files.unshift "dex.#{ext}"
-		end
+		# Move dex/jQuery to the front of the array, if it existed.
+		files.unshift "dex.#{ext}" if files.delete "dex.#{ext}"
+		files.unshift "jquery.js" if files.delete "jquery.js"
 
 		body = ""
 		body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
 
-		puts "Loading #{files.count} #{ext.upcase} file#{files.count>1 ? 's':''} for #{filename}".console_red
+		puts "Loading #{files.count} #{ext.upcase} file#{files.count>1 ? 's':''} for #{filename}".console_green
 
 		files.each do |file|
 			short_file = file.sub(File.expand_path('')+'/', '')
@@ -90,7 +107,7 @@ end
 
 ssl_info = DATA.read
 ssl_cert = ssl_info.scan(/(-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----)/m)[0][0]
-ssl_key	 = ssl_info.scan(/(-----BEGIN RSA PRIVATE KEY-----.+?-----END RSA PRIVATE KEY-----)/m)[0][0]
+ssl_key = ssl_info.scan(/(-----BEGIN RSA PRIVATE KEY-----.+?-----END RSA PRIVATE KEY-----)/m)[0][0]
 
 server_options = {
 	:Host => DEX_HOSTNAME,
