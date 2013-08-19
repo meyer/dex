@@ -1,4 +1,8 @@
 #!/usr/bin/env ruby
+# encoding: utf-8
+
+require 'erb'
+require 'yaml'
 
 DEX_DIR = "<%= DEX_DIR %>"
 DEX_VERSION = "<%= @ext_version %>"
@@ -31,7 +35,14 @@ Dir.chdir(DEX_DIR)
 require 'webrick'
 require 'webrick/https'
 
-index_template = <<-index_template
+config_file = File.join(DEX_DIR,'enabled.txt')
+$enabled_files = []
+
+IO.foreach(config_file, File::CREAT) do |line|
+	$enabled_files << line.chomp
+end
+
+$index_template = <<-index_template
 <%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
 index_template
 
@@ -42,47 +53,51 @@ server_object = Class.new(WEBrick::HTTPServlet::AbstractServlet) do
 		# Won’t match non-dot URLs (ex: localhost) or URLs with port numbers
 		/^(?<url>[\w\-_]+\.[\w\-_\.]+)\.(?<ext>css|html|json|js)$/ =~ path
 
+		response.status = 200
+
+		content_types = {
+			'css' => 'text/css',
+			'html' => 'text/html',
+			'json' => 'application/json',
+			'js' => 'application/javascript'
+		}
+		ext = 'html'
+
 		if Regexp.last_match
 			url = Regexp.last_match[:url]
 			ext = Regexp.last_match[:ext]
 
-			content_types = {
-				'css' => 'text/css',
-				'html' => 'text/html',
-				'json' => 'application/json',
-				'js' => 'application/javascript'
-			}
-			response['Content-Type'] = content_types[ext]+"; charset=utf-8"
-
 			if ext == 'css' || ext == 'js'
 				body = build_body(path, ext, url)
-				response.status = body.empty? ? 204 : 200
-				response.body = "/* dex #{DEX_VERSION} */\n"+body
+				response.status = 204 if body.empty?
+				response.body = body
 			elsif ext == 'html'
 				puts "HTML PAGE FOR #{url}".console_green
 			elsif ext == 'json'
 				puts "JSON RESPONSE FOR #{url}".console_green
 			end
-
-			return
-
 		elsif path == ''
 			puts 'INDEX PAGE'
+			response.body = ERB.new($index_template).result(binding)
 		else
 			puts "404: #{path} not found".console_red
 			response.status = 404
-			response['Content-Type'] = "text/plain; charset=utf-8"
 			response.body = "`#{path}` does not exist."
 		end
+
+		response['Content-Type'] = content_types[ext]+"; charset=utf-8"
+
 	end
 
 	def build_body(path, ext, filename)
-		# files in ~/.dex/ and ~/.dex/example.com/, dex first
+		# files in ~/.dex/ and ~/.dex/example.com/
 		files = Dir.glob "{*.#{ext},#{filename}/*.#{ext}}"
+
+		# files.delete_if {|f| !$enabled_files.include? f }
 
 		# Move dex/jQuery to the front of the array, if it existed.
 		files.unshift "dex.#{ext}" if files.delete "dex.#{ext}"
-		files.unshift "jquery.js" if files.delete "jquery.js"
+		# files.unshift "jquery.js" if files.delete "jquery.js"
 
 		body = ""
 		body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
@@ -91,11 +106,12 @@ server_object = Class.new(WEBrick::HTTPServlet::AbstractServlet) do
 
 		files.each do |file|
 			short_file = file.sub(File.expand_path('')+'/', '')
-			if short_file.include? '.disabled'
-				body_prefix << "\n[ ] "
-			elsif File.file?(file)
+
+			if $enabled_files.include?(file) && File.file?(file)
 				body_prefix << "\n[+] "
 				body << "\n/* @start #{short_file} */\n" + IO.read(file) + "\n/* @end #{short_file} */\n\n"
+			else
+				body_prefix << "\n[ ] "
 			end
 			body_prefix << short_file
 		end

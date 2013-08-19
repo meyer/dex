@@ -22,7 +22,7 @@ though, here’s the deal. Three steps:
 	That’ll install the `dex` server to `/usr/local/bin` and set it to
 	automatically start when your computer boots up.
 
-2. [Install the browser extension][extension] in Your Cool Browser.
+2. Install the browser extension in Your Cool Browser.
 	* **Safari**: [Download the Safari extension][safariextz] and double-click
 		it to install.
 	* **Chrome**: Install the extension at the [official extension page][crx].

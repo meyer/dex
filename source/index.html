@@ -4,16 +4,28 @@
 		<title>Dexfiles</title>
 	</head>
 	<body>
-
-		<ul>
-<% if !dexfiles_global.blank? %>
-<% for item in dexfiles_global %>
-			<li><%= item %></li>
+		<li>
+			<h1>Folders</h1>
+			<ul>
+<% folders = Dir.glob("*/") %>
+<% if !folders.empty? %>
+<% for folder in folders %>
+				<li>
+					<ul>
+						<h2><%= folder[0..-2] %></h2>
+						<ul>
+<% for file in Dir.glob(folder+'*.{css,js}').sort %>
+							<li><!-- <%= file.gsub(folder,'') %> --><%= file %></li>
+<% end %>
+						</ul>
+					</ul>
+				</li>
 <% end %>
 <% else %>
-			<li class="empty">No dexfiles :(</li>
+				<li class="empty">No dexfiles :(</li>
 <% end %>
-		</ul>
+			</ul>
+		</li>
 
 	</body>
 </html>
