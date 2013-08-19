@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Dexfiles</title>
+	</head>
+	<body>
+		<li>
+			<h1>Dexfiles on <%= url %></h1>
+			<ul>
+<% if !dexfiles.empty? %>
+<% for dexfile in dexfiles %>
+				<li>
+					<% if $enabled_files.include? dexfile %>ENABLED:<% else %>NOT ENABLED:<% end %><%= dexfile %>
+				</li>
+<% end %>
+<% else %>
+				<li class="empty">No dexfiles :(</li>
+<% end %>
+			</ul>
+		</li>
+
+	</body>
+</html>

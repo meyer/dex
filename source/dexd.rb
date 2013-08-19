@@ -3,6 +3,8 @@
 
 require 'erb'
 require 'yaml'
+require 'webrick'
+require 'webrick/https'
 
 DEX_DIR = "<%= DEX_DIR %>"
 DEX_VERSION = "<%= @ext_version %>"
@@ -32,9 +34,6 @@ end
 
 Dir.chdir(DEX_DIR)
 
-require 'webrick'
-require 'webrick/https'
-
 config_file = File.join(DEX_DIR,'enabled.txt')
 $enabled_files = []
 
@@ -46,9 +45,17 @@ $index_template = <<-index_template
 <%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
 index_template
 
-server_object = Class.new(WEBrick::HTTPServlet::AbstractServlet) do
+$site_template = <<-site_template
+<%= File.read File.join(SERVER_SOURCE_DIR,'site.html') %>
+site_template
+
+class DexServer < WEBrick::HTTPServlet::AbstractServlet
 	def do_GET(request, response)
 		path = request.path.gsub!(/^\//,'')
+
+		# response.status = 302
+		# response['Location'] = 'http://google.com'
+		# return
 
 		# Won’t match non-dot URLs (ex: localhost) or URLs with port numbers
 		/^(?<url>[\w\-_]+\.[\w\-_\.]+)\.(?<ext>css|html|json|js)$/ =~ path
@@ -73,11 +80,16 @@ server_object = Class.new(WEBrick::HTTPServlet::AbstractServlet) do
 				response.body = body
 			elsif ext == 'html'
 				puts "HTML PAGE FOR #{url}".console_green
+				dexfiles = Dir.glob("*.{css,js}").sort + Dir.glob("#{url}/*.{css,js}").sort
+				# dexfiles.map! { |f| "[#{($enabled_files.include? f) ? '+':' '}] #{f}"}
+
+				response.body = ERB.new($site_template).result(binding)
 			elsif ext == 'json'
 				puts "JSON RESPONSE FOR #{url}".console_green
 			end
 		elsif path == ''
 			puts 'INDEX PAGE'
+			dexfiles = Dir.glob "{*.{css,js},#{url}/*.{css,js}}"
 			response.body = ERB.new($index_template).result(binding)
 		else
 			puts "404: #{path} not found".console_red
@@ -138,7 +150,7 @@ server_options = {
 }
 
 server = WEBrick::HTTPServer.new(server_options)
-server.mount('/', server_object)
+server.mount('/', DexServer)
 
 trap 'INT' do server.shutdown end
 trap 'TERM' do server.shutdown end

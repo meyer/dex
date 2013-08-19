@@ -9,7 +9,11 @@ EXT_DESC = IO.read('./source/extension/description.txt')
 EXT_URL = 'https://github.com/meyer/dex'
 EXT_AUTHOR = 'Mike Meyer'
 EXT_BUNDLE_ID = 'fm.meyer.dex'
-EXT_FILES = ['jquery.js','main.coffee']
+EXT_FILES = ['main.coffee']
+
+EXT_BACKGROUND_PAGE = true
+EXT_POPOVER_MENU = true
+
 EXT_WHITELIST = ['http://*/*','https://*/*']
 EXT_ICONS = [32,48,64,96,128]
 EXT_SAFARI_DEV_ID = '7ZCMA49A25'
