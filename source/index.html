@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Dexfiles</title>
+	</head>
+	<body>
+
+		<ul>
+<% if !dexfiles_global.blank? %>
+<% for item in dexfiles_global %>
+			<li><%= item %></li>
+<% end %>
+<% else %>
+			<li class="empty">No dexfiles :(</li>
+<% end %>
+		</ul>
+
+	</body>
+</html>
