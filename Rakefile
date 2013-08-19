@@ -12,10 +12,12 @@ EXT_BUNDLE_ID = 'fm.meyer.dex'
 EXT_FILES = ['jquery.js','main.coffee']
 EXT_WHITELIST = ['http://*/*','https://*/*']
 EXT_ICONS = [32,48,64,96,128]
+EXT_SAFARI_DEV_ID = '7ZCMA49A25'
+EXT_SAFARI_UPDATE_URL = "#{EXT_URL}/raw/master/extensions/dex-#{EXT_VERSION}.safariextz"
 
 EXT_SOURCE_DIR = './source/extension'
 EXT_CERT_DIR = '../certificates'
-EXT_RELEASE_DIR = './bin'
+EXT_RELEASE_DIR = './extensions'
 
 TEMP_DIR = './build'
 
