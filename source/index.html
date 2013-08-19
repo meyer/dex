@@ -7,9 +7,8 @@
 		<li>
 			<h1>Folders</h1>
 			<ul>
-<% folders = Dir.glob("*/") %>
-<% if !folders.empty? %>
-<% for folder in folders %>
+<% if !dexfiles.empty? %>
+<% for folder in dexfiles %>
 				<li>
 					<ul>
 						<h2><%= folder[0..-2] %></h2>

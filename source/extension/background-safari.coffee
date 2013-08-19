@@ -1,0 +1,1 @@
+console.log "URL: #{safari.application.activeBrowserWindow.activeTab.url}"

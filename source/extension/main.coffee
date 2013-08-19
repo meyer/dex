@@ -1,4 +1,4 @@
-dexfile = window.location.host.replace 'www.', ''
+dexfile = window.location.host.replace /^www\./, ''
 address = '<%= DEX_URL %>/'
 
 # Don’t load on iframed content (like buttons and whatnot)
