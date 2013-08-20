@@ -1,54 +1,80 @@
-setBadgeCount = (badgeText) ->
-	if oldTabID == selectedID
-		console.log "Already set tab #{selectedID}"
-		return
-	selectedID = oldTabID
+selectedID = -1
+currentPageURL = ''
+cachedValue = 0
 
+# if window.safari
+#
+# if window.chrome
+# 	chrome.tabs.query {active: true, currentWindow: true}, (tabs) ->
+# 		console.log 'TAB QUERY'
+# 		updateBadgeCount tabs[0].id
+
+processURL = (url) ->
+	url = url.split('//')[1]
+	url = url.split('/')[0]
+	url = url.replace /^www\./, ''
+	return url
+
+updateBadgeCount = (badgeText) ->
 	if window.chrome
-		console.log 'SET BADGE IN CHROME'
-		chrome.browserAction.setBadgeText
-			"text": badgeText+''
-			tabId: selectedID
+		chrome.tabs.query {active: true, currentWindow: true}, (tabs) ->
+			tab = tabs[0]
+			currentPageURL = tab.url
+
+			return if selectedID == tab.id
+			selectedID = tab.id
+
+			if ~tab.url.indexOf('chrome://') || ~tab.url.indexOf('chrome-extension://')
+				chrome.browserAction.disable tab.id
+				chrome.browserAction.setBadgeText
+					"text": ''
+					tabId: tab.id
+			else
+				chrome.browserAction.enable tab.id
+				chrome.browserAction.setBadgeText
+					"text": badgeText+''
+					tabId: tab.id
 
 	if window.safari
-		console.log 'SET BADGE IN SAFARI'
+		currentPageURL = safari.application.activeBrowserWindow.activeTab.url
 
+		for item in safari.extension.toolbarItems
+			break if item.identifier != "DexToolbarItem"
+
+			item.disabled = !item.browserWindow.activeTab.url
+			badgeText = 0 if item.disabled
+			badgeText = item.browserWindow.activeTab.url.length if !item.disabled
+			item.badge = badgeText if 'badge' of item
 	return
 
-selectedID = -1
-oldTabID = -1
-
-
+# Events
 if window.safari
-
-	console.log "URL: #{safari.application.activeBrowserWindow.activeTab.url}"
-
-	# Fired when the button is clicked
+	# Fired when the menubar button is clicked
 	popoverHandler = (e) ->
-		console.log "POPOVER: #{e.target.identifier}"
 		safari.extension.popovers[0].contentWindow.location.reload()
 
 	# Fired when new tab/window is focused
 	activateHandler = (e) ->
+		updateBadgeCount(Math.floor(Math.random()*100))
 		console.log "ACTIVATE"
 
 	safari.application.addEventListener "popover", popoverHandler, true
 	safari.application.addEventListener "activate", activateHandler, true
+	safari.application.addEventListener "validate", activateHandler, true
 
 else if window.chrome
-
+	# Fired when page is refreshed
 	chrome.tabs.onUpdated.addListener (tabID, props) ->
 		if props.status == "complete" && tabID == selectedID
 			console.log "New page loaded"
-			setBadgeCount tabID
+			updateBadgeCount tabID
 
+	# Fired when tab is changed
 	chrome.tabs.onSelectionChanged.addListener (tabID, props) ->
-		console.log "Tab changed from #{oldTabID} to #{tabID}."
-		setBadgeCount tabID
+		console.log "Tab changed from #{selectedID} to #{tabID}."
+		updateBadgeCount tabID
 
+	# Fired when different tab is loaded
 	chrome.tabs.onActivated.addListener (e, props) ->
 		console.log "onActivated: #{e.tabId}"
-
-	chrome.tabs.query {active: true, currentWindow: true}, (tabs) ->
-		console.log 'TAB QUERY'
-		setBadgeCount tabs[0].id
+		updateBadgeCount e.tabId
