@@ -5,6 +5,7 @@ require 'erb'
 require 'yaml'
 require 'webrick'
 require 'webrick/https'
+require 'json'
 
 DEX_DIR = "<%= DEX_DIR %>"
 DEX_VERSION = "<%= @ext_version %>"
@@ -38,7 +39,7 @@ config_file = File.join(DEX_DIR,'enabled.txt')
 $enabled_files = []
 
 IO.foreach(config_file, File::CREAT) do |line|
-	$enabled_files << line.chomp
+	$enabled_files << line.chomp unless line.chomp.empty?
 end
 
 $index_template = <<-index_template
@@ -78,24 +79,27 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				body = build_body(path, ext, url)
 				response.status = 204 if body.empty?
 				response.body = body
-			elsif ext == 'html'
-				puts "HTML PAGE FOR #{url}".console_green
+			elsif ext == 'html' || ext == 'json'
 
 				dexfiles = Dir.glob("*.{css,js}").sort
 				dexfiles += Dir.glob("#{url}/*.{css,js}").sort
 
-				response.body = ERB.new($site_template).result(binding)
-			elsif ext == 'json'
-				puts "JSON RESPONSE FOR #{url}".console_green
+				# Save globbed results
+				everything = dexfiles.dup
 
-				dexfiles = Dir.glob("{*.{css,js},*/*.{css,js}}")
+				# Filter out disabled CSS/JS
 				dexfiles.delete_if {|f| !$enabled_files.include?(f)}
 
-				r = {
-					:dexfileCount => dexfiles.length
-				}
-
-				response.body
+				if ext == 'html'
+					response.body = ERB.new($site_template).result(binding)
+				elsif ext == 'json'
+					response.body = JSON.generate({
+						# :dexfileCount => dexfiles.length,
+						:enabled => dexfiles,
+						:everything => everything
+					})
+					response.body = "dexfileCallback(#{response.body})"
+				end
 			end
 		elsif path == ''
 			puts 'INDEX PAGE'
