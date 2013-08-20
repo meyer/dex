@@ -80,16 +80,26 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				response.body = body
 			elsif ext == 'html'
 				puts "HTML PAGE FOR #{url}".console_green
-				dexfiles = Dir.glob("*.{css,js}").sort + Dir.glob("#{url}/*.{css,js}").sort
-				# dexfiles.map! { |f| "[#{($enabled_files.include? f) ? '+':' '}] #{f}"}
+
+				dexfiles = Dir.glob("*.{css,js}").sort
+				dexfiles += Dir.glob("#{url}/*.{css,js}").sort
 
 				response.body = ERB.new($site_template).result(binding)
 			elsif ext == 'json'
 				puts "JSON RESPONSE FOR #{url}".console_green
+
+				dexfiles = Dir.glob("{*.{css,js},*/*.{css,js}}")
+				dexfiles.delete_if {|f| !$enabled_files.include?(f)}
+
+				r = {
+					:dexfileCount => dexfiles.length
+				}
+
+				response.body
 			end
 		elsif path == ''
 			puts 'INDEX PAGE'
-			dexfiles = Dir.glob "{*.{css,js},#{url}/*.{css,js}}"
+			dexfiles = Dir.glob("*.{css,js}").sort + Dir.glob("*/*.{css,js}").sort
 			response.body = ERB.new($index_template).result(binding)
 		else
 			puts "404: #{path} not found".console_red
