@@ -39,33 +39,34 @@ Dir.chdir(DEX_DIR)
 config = YAML::load_file 'enabled.yaml'
 
 # GLOBFEST
-$all_folders = {}
-$enabled_folders = {'global' => config.delete('global').map! {|s| "global/#{s}"}}
+# $all_folders = {}
+# $enabled_folders = {'global' => config.delete('global').map! {|s| "global/#{s}"}}
+folders = config.delete('global').map! {|s| "global/#{s}"}
 
-$css = {'global' => Dir.glob("global/{#{$enabled_folders['global'].join ','}}/*.css")}
-$js = {'global' => Dir.glob("global/{#{$enabled_folders['global'].join ','}}/*.js")}
+$css = {'global' => Dir.glob("global/{#{folders.join ','}}/*.css")}
+$js = {'global' => Dir.glob("global/{#{folders.join ','}}/*.js")}
 
-Dir.glob('*/').each do |folder|
-	folder = folder[0...-1]
-	$all_folders[folder] = [folder]
-	$all_folders[folder] += Dir.glob("#{folder}/*/").map! {|s| s[0...-1] }
-end
+# Dir.glob('*/').each do |folder|
+# 	folder = folder[0...-1]
+# 	$all_folders[folder] = [folder]
+# 	$all_folders[folder] += Dir.glob("#{folder}/*/").map! {|s| s[0...-1] }
+# end
 
 config.each do |hostname,folderList|
 	glob_str = []
 	$css[hostname] = Dir.glob "#{hostname}/*.css"
 	$js[hostname] = Dir.glob "#{hostname}/*.js"
-	$enabled_folders[hostname] = [hostname]
+	# $enabled_folders[hostname] = [hostname]
 
 	folderList.each do |folder|
 		# Include a module from another site
 		if folder.include? '/'
 			$css[hostname] += Dir.glob "#{folder}/*.css"
 			$js[hostname] += Dir.glob "#{folder}/*.js"
-			$enabled_folders[hostname].push "#{folder}"
+			# $enabled_folders[hostname].push "#{folder}"
 		else
 			glob_str.push folder
-			$enabled_folders[hostname].push "#{hostname}/#{folder}"
+			# $enabled_folders[hostname].push "#{hostname}/#{folder}"
 		end
 	end
 
@@ -74,17 +75,6 @@ config.each do |hostname,folderList|
 		$js[hostname] += Dir.glob "#{hostname}/{#{glob_str.join ','}}/*.js"
 	end
 end
-
-# File.write(File.join(DEX_DIR,'enabled.yaml'),config.to_yaml)
-
-puts '$css'
-puts $css.to_yaml
-
-puts '$js'
-puts $enabled_folders.to_yaml
-
-puts '$all_folders'
-puts $all_folders.to_yaml
 
 $index_template = <<-index_template
 <%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
@@ -97,10 +87,6 @@ site_template
 class DexServer < WEBrick::HTTPServlet::AbstractServlet
 	def do_GET(request, response)
 		path = request.path.gsub!(/^\//,'')
-
-		# response.status = 302
-		# response['Location'] = 'http://google.com'
-		# return
 
 		# Won’t match non-dot URLs (ex: localhost) or URLs with port numbers
 		/^(?<url>[\w\-_]+\.[\w\-_\.]+)\.(?<ext>css|html|json|js)$/ =~ path
@@ -147,43 +133,53 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		# files in ~/.dex/ and ~/.dex/example.com/
 		files = []
 
-		# if ext == 'css'
-		# 	files += $css['global']
-		# 	files += $css[ filename ] if $css.has_key? filename
-		# else
-		# 	files += $js['global']
-		# 	files += $js[ filename ] if $js.has_key? filename
-		# end
+		if ext == 'css'
+			files += $css['global']
+			files += $css[ filename ] if $css.has_key? filename
+		else
+			files += $js['global']
+			files += $js[ filename ] if $js.has_key? filename
+		end
 
-		e = $enabled_folders['global']
-		e += $enabled_folders[filename] if $enabled_folders.has_key? filename
-
-		a = $all_folders['global']
-		a += $all_folders[filename] if $all_folders.has_key? filename
-
-		body = ""
 		puts "Loading #{files.count} #{ext.upcase} file#{files.count>1 ? 's':''} for #{filename}".console_green
 
-		glob_str = []
-
 		body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
-		a.each do |folder|
-			if e.include?(folder)
-				glob_str << folder
-				body_prefix << "\n[+] #{folder}"
-			else
-				body_prefix << "\n[ ] #{folder}"
-			end
-		end
-		body_prefix << "\n\n*/\n"
+		body = ""
 
-		Dir.glob("{#{glob_str.join(',')}}/*.#{ext}").each do |file|
+		files.each do |file|
 			if File.file?(file)
+				body_prefix << "\n[+] #{file}"
 				body << "\n/* @start #{file} */\n" + IO.read(file) + "\n/* @end #{file} */\n\n"
 			end
 		end
 
+		body_prefix << "\n\n*/\n"
 		body_prefix + body
+
+		# e = $enabled_folders['global']
+		# e += $enabled_folders[filename] if $enabled_folders.has_key? filename
+		#
+		# a = $all_folders['global']
+		# a += $all_folders[filename] if $all_folders.has_key? filename
+
+		#glob_str = []
+		#
+		#body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
+		#a.each do |folder|
+		#	if e.include?(folder)
+		#		glob_str << folder
+		#		body_prefix << "\n[+] #{folder}"
+		#	else
+		#		body_prefix << "\n[ ] #{folder}"
+		#	end
+		#end
+		#body_prefix << "\n\n*/\n"
+		#
+		#Dir.glob("{#{glob_str.join(',')}}/*.#{ext}").each do |file|
+		#	if File.file?(file)
+		#		body << "\n/* @start #{file} */\n" + IO.read(file) + "\n/* @end #{file} */\n\n"
+		#	end
+		#end
 	end
 end
 
