@@ -39,41 +39,25 @@ Dir.chdir(DEX_DIR)
 config = YAML::load_file 'enabled.yaml'
 
 # GLOBFEST
-# $all_folders = {}
-# $enabled_folders = {'global' => config.delete('global').map! {|s| "global/#{s}"}}
 folders = config.delete('global').map! {|s| "global/#{s}"}
 
-$css = {'global' => Dir.glob("global/{#{folders.join ','}}/*.css")}
-$js = {'global' => Dir.glob("global/{#{folders.join ','}}/*.js")}
-
-# Dir.glob('*/').each do |folder|
-# 	folder = folder[0...-1]
-# 	$all_folders[folder] = [folder]
-# 	$all_folders[folder] += Dir.glob("#{folder}/*/").map! {|s| s[0...-1] }
-# end
+$css = {'global' => Dir.glob("{#{folders.join ','}}/*.css")}
+$js = {'global' => Dir.glob("{#{folders.join ','}}/*.js")}
 
 config.each do |hostname,folderList|
-	glob_str = []
-	$css[hostname] = Dir.glob "#{hostname}/*.css"
-	$js[hostname] = Dir.glob "#{hostname}/*.js"
-	# $enabled_folders[hostname] = [hostname]
+	glob_str = [hostname]
 
 	folderList.each do |folder|
 		# Include a module from another site
 		if folder.include? '/'
-			$css[hostname] += Dir.glob "#{folder}/*.css"
-			$js[hostname] += Dir.glob "#{folder}/*.js"
-			# $enabled_folders[hostname].push "#{folder}"
-		else
 			glob_str.push folder
-			# $enabled_folders[hostname].push "#{hostname}/#{folder}"
+		else
+			glob_str.push "#{hostname}/#{folder}"
 		end
 	end
 
-	unless glob_str.empty?
-		$css[hostname] += Dir.glob "#{hostname}/{#{glob_str.join ','}}/*.css"
-		$js[hostname] += Dir.glob "#{hostname}/{#{glob_str.join ','}}/*.js"
-	end
+	$css[hostname] = Dir.glob "{#{glob_str.join ','}}/*.css"
+	$js[hostname] = Dir.glob "{#{glob_str.join ','}}/*.js"
 end
 
 $index_template = <<-index_template
@@ -130,15 +114,16 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 	end
 
 	def build_body(filename, ext)
-		# files in ~/.dex/ and ~/.dex/example.com/
 		files = []
 
 		if ext == 'css'
 			files += $css['global']
 			files += $css[ filename ] if $css.has_key? filename
-		else
+		elsif ext == 'js'
 			files += $js['global']
 			files += $js[ filename ] if $js.has_key? filename
+		else
+			return 'ERROR'
 		end
 
 		puts "Loading #{files.count} #{ext.upcase} file#{files.count>1 ? 's':''} for #{filename}".console_green
@@ -156,30 +141,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		body_prefix << "\n\n*/\n"
 		body_prefix + body
 
-		# e = $enabled_folders['global']
-		# e += $enabled_folders[filename] if $enabled_folders.has_key? filename
-		#
-		# a = $all_folders['global']
-		# a += $all_folders[filename] if $all_folders.has_key? filename
-
-		#glob_str = []
-		#
-		#body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
-		#a.each do |folder|
-		#	if e.include?(folder)
-		#		glob_str << folder
-		#		body_prefix << "\n[+] #{folder}"
-		#	else
-		#		body_prefix << "\n[ ] #{folder}"
-		#	end
-		#end
-		#body_prefix << "\n\n*/\n"
-		#
-		#Dir.glob("{#{glob_str.join(',')}}/*.#{ext}").each do |file|
-		#	if File.file?(file)
-		#		body << "\n/* @start #{file} */\n" + IO.read(file) + "\n/* @end #{file} */\n\n"
-		#	end
-		#end
 	end
 end
 
