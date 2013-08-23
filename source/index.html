@@ -11,7 +11,7 @@
 <% for folder in dexfiles %>
 				<li>
 					<ul>
-						<h2><%= folder[0..-2] %></h2>
+						<h2><%= folder[0...-1] %></h2>
 						<ul>
 <% for file in Dir.glob(folder+'*.{css,js}').sort %>
 							<li><!-- <%= file.gsub(folder,'') %> --><%= file %></li>
