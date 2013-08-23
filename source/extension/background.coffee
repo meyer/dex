@@ -2,15 +2,8 @@ selectedID = -1
 currentPageURL = ''
 cachedValue = 0
 
-# if window.safari
-#
-# if window.chrome
-# 	chrome.tabs.query {active: true, currentWindow: true}, (tabs) ->
-# 		console.log 'TAB QUERY'
-# 		updateBadgeCount tabs[0].id
-
 processURL = (url) ->
-	url = url.split('//')[1]
+	url = url.split('//')[1] if ~url.indexOf('//')
 	url = url.split('/')[0]
 	url = url.replace /^www\./, ''
 	return url

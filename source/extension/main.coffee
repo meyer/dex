@@ -1,29 +1,31 @@
-dexfile = window.location.host.replace /^www\./, ''
+hostname = window.location.host.replace /^www\./, ''
 address = '<%= DEX_URL %>/'
 
-# Don’t load on iframed content (like buttons and whatnot)
-# Idea: load different stylesheets if iframed? Alas, poor webrick.
-return unless window.self is window.top
+return unless window.self is window.top # no iframes
+return if ~hostname.indexOf 'localhost' # no localhost
 
-# Stuff to load
-script = document.createElement 'script'
-script.src = address + dexfile + '.js'
+jquery = document.createElement 'script'
+dex = document.createElement 'script'
 
-# OMG THIS IS SO BAD
-# xhr = new XMLHttpRequest()
-# xhr.open "GET", address + dexfile + '.eval.js', false
-# xhr.send null
-# eval xhr.responseText
+if window.chrome
+	jquery.src = chrome.extension.getURL 'jquery-2.0.3.min.js'
+	dex.src = chrome.extension.getURL 'dex.js'
+else
+	jquery.src = safari.extension.baseURI + 'jquery-2.0.3.min.js'
+	dex.src = safari.extension.baseURI + 'dex.js'
 
-link = document.createElement 'link'
-link.rel = 'stylesheet'
-link.href = address + dexfile + '.css'
+js = document.createElement 'script'
+js.src = address + hostname + '.js'
+
+css = document.createElement 'link'
+css.rel = 'stylesheet'
+css.href = address + hostname + '.css'
 
 cssLoaded = false
 jsLoaded = false
 
 # Because DOMContentLoaded is too slow™
-# TODO: Find an event that isn’t deprecated.
+# TODO: Find an event that isn’t deprecated. Or maybe just an interval? IDK.
 document.addEventListener 'DOMNodeInserted', (e) ->
 	if typeof(e.relatedNode.tagName) != 'undefined'
 		if !cssLoaded
@@ -32,13 +34,16 @@ document.addEventListener 'DOMNodeInserted', (e) ->
 				# TODO: Load site.com.head.js here?
 				console.log 'CSS Loaded'
 				cssLoaded = true
-				asap.appendChild link
-		else if !jsLoaded && e.relatedNode.tagName == 'BODY'
+				asap.appendChild css
+
+		if !jsLoaded && (document.body || false)
 			console.log 'JS Loaded'
 			jsLoaded = true
-			document.body.appendChild link.cloneNode()
-			document.body.appendChild script
-		else if cssLoaded and jsLoaded
-			this.removeEventListener 'DOMNodeInserted', arguments.callee, false
+			document.body.appendChild css.cloneNode()
 
-# Idea: reload JS on popstate (?)
+			document.body.appendChild jquery
+			document.body.appendChild dex
+			document.body.appendChild js
+
+		if cssLoaded and jsLoaded
+			this.removeEventListener 'DOMNodeInserted', arguments.callee, false

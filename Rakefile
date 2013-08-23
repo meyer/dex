@@ -9,7 +9,11 @@ EXT_DESC = IO.read('./source/extension/description.txt')
 EXT_URL = 'https://github.com/meyer/dex'
 EXT_AUTHOR = 'Mike Meyer'
 EXT_BUNDLE_ID = 'fm.meyer.dex'
-EXT_FILES = ['main.coffee']
+EXT_CONTENT_SCRIPTS = ['main.coffee']
+
+# safari.extension.baseURI + 'filename'
+# chrome.extension.getURL('filename')
+EXT_EXTRA_RESOURCES = ['jquery-2.0.3.min.js','dex.coffee']
 
 EXT_BACKGROUND_PAGE = true
 EXT_POPOVER_MENU = true
@@ -17,7 +21,8 @@ EXT_POPOVER_MENU = true
 EXT_WHITELIST = ['http://*/*','https://*/*']
 EXT_ICONS = [32,48,64,96,128]
 EXT_SAFARI_DEV_ID = '7ZCMA49A25'
-EXT_SAFARI_UPDATE_URL = "#{EXT_URL}/raw/master/extensions/dex-#{EXT_VERSION}.safariextz"
+EXT_SAFARI_UPDATE_URL = "https://raw.github.com/meyer/dex/master/extensions/dex-#{EXT_VERSION}.safariextz"
+EXT_SAFARI_UPDATE_MANIFEST_URL = "https://raw.github.com/meyer/dex/master/extensions/safari-update-manifest.plist"
 
 EXT_SOURCE_DIR = './source/extension'
 EXT_CERT_DIR = '../certificates'

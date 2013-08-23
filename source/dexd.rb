@@ -35,12 +35,56 @@ end
 
 Dir.chdir(DEX_DIR)
 
-config_file = File.join(DEX_DIR,'enabled.txt')
-$enabled_files = []
+# config_file = File.join(DEX_DIR,'enabled.txt')
+config = YAML::load_file 'enabled.yaml'
 
-IO.foreach(config_file, File::CREAT) do |line|
-	$enabled_files << line.chomp unless line.chomp.empty?
+# GLOBFEST
+$all_folders = {}
+$enabled_folders = {'global' => config.delete('global').map! {|s| "global/#{s}"}}
+
+$css = {'global' => Dir.glob("global/{#{$enabled_folders['global'].join ','}}/*.css")}
+$js = {'global' => Dir.glob("global/{#{$enabled_folders['global'].join ','}}/*.js")}
+
+Dir.glob('*/').each do |folder|
+	folder = folder[0...-1]
+	$all_folders[folder] = [folder]
+	$all_folders[folder] += Dir.glob("#{folder}/*/").map! {|s| s[0...-1] }
 end
+
+config.each do |hostname,folderList|
+	glob_str = []
+	$css[hostname] = Dir.glob "#{hostname}/*.css"
+	$js[hostname] = Dir.glob "#{hostname}/*.js"
+	$enabled_folders[hostname] = [hostname]
+
+	folderList.each do |folder|
+		# Include a module from another site
+		if folder.include? '/'
+			$css[hostname] += Dir.glob "#{folder}/*.css"
+			$js[hostname] += Dir.glob "#{folder}/*.js"
+			$enabled_folders[hostname].push "#{folder}"
+		else
+			glob_str.push folder
+			$enabled_folders[hostname].push "#{hostname}/#{folder}"
+		end
+	end
+
+	unless glob_str.empty?
+		$css[hostname] += Dir.glob "#{hostname}/{#{glob_str.join ','}}/*.css"
+		$js[hostname] += Dir.glob "#{hostname}/{#{glob_str.join ','}}/*.js"
+	end
+end
+
+# File.write(File.join(DEX_DIR,'enabled.yaml'),config.to_yaml)
+
+puts '$css'
+puts $css.to_yaml
+
+puts '$js'
+puts $enabled_folders.to_yaml
+
+puts '$all_folders'
+puts $all_folders.to_yaml
 
 $index_template = <<-index_template
 <%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
@@ -76,34 +120,18 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			ext = Regexp.last_match[:ext]
 
 			if ext == 'css' || ext == 'js'
-				body = build_body(path, ext, url)
+				body = build_body(url, ext)
 				response.status = 204 if body.empty?
 				response.body = body
 			elsif ext == 'html' || ext == 'json'
-
-				dexfiles = Dir.glob("*.{css,js}").sort
-				dexfiles += Dir.glob("#{url}/*.{css,js}").sort
-
-				# Save globbed results
-				everything = dexfiles.dup
-
-				# Filter out disabled CSS/JS
-				dexfiles.delete_if {|f| !$enabled_files.include?(f)}
-
 				if ext == 'html'
 					response.body = ERB.new($site_template).result(binding)
 				elsif ext == 'json'
-					response.body = JSON.generate({
-						# :dexfileCount => dexfiles.length,
-						:enabled => dexfiles,
-						:everything => everything
-					})
-					response.body = "dexfileCallback(#{response.body})"
+					response.body = JSON.generate({})
 				end
 			end
 		elsif path == ''
 			puts 'INDEX PAGE'
-			dexfiles = Dir.glob("*.{css,js}").sort + Dir.glob("*/*.{css,js}").sort
 			response.body = ERB.new($index_template).result(binding)
 		else
 			puts "404: #{path} not found".console_red
@@ -115,34 +143,46 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 	end
 
-	def build_body(path, ext, filename)
+	def build_body(filename, ext)
 		# files in ~/.dex/ and ~/.dex/example.com/
-		files = Dir.glob "{*.#{ext},#{filename}/*.#{ext}}"
+		files = []
 
-		# files.delete_if {|f| !$enabled_files.include? f }
+		# if ext == 'css'
+		# 	files += $css['global']
+		# 	files += $css[ filename ] if $css.has_key? filename
+		# else
+		# 	files += $js['global']
+		# 	files += $js[ filename ] if $js.has_key? filename
+		# end
 
-		# Move dex/jQuery to the front of the array, if it existed.
-		files.unshift "dex.#{ext}" if files.delete "dex.#{ext}"
-		# files.unshift "jquery.js" if files.delete "jquery.js"
+		e = $enabled_folders['global']
+		e += $enabled_folders[filename] if $enabled_folders.has_key? filename
+
+		a = $all_folders['global']
+		a += $all_folders[filename] if $all_folders.has_key? filename
 
 		body = ""
-		body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
-
 		puts "Loading #{files.count} #{ext.upcase} file#{files.count>1 ? 's':''} for #{filename}".console_green
 
-		files.each do |file|
-			short_file = file.sub(File.expand_path('')+'/', '')
+		glob_str = []
 
-			if $enabled_files.include?(file) && File.file?(file)
-				body_prefix << "\n[+] "
-				body << "\n/* @start #{short_file} */\n" + IO.read(file) + "\n/* @end #{short_file} */\n\n"
+		body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
+		a.each do |folder|
+			if e.include?(folder)
+				glob_str << folder
+				body_prefix << "\n[+] #{folder}"
 			else
-				body_prefix << "\n[ ] "
+				body_prefix << "\n[ ] #{folder}"
 			end
-			body_prefix << short_file
+		end
+		body_prefix << "\n\n*/\n"
+
+		Dir.glob("{#{glob_str.join(',')}}/*.#{ext}").each do |file|
+			if File.file?(file)
+				body << "\n/* @start #{file} */\n" + IO.read(file) + "\n/* @end #{file} */\n\n"
+			end
 		end
 
-		body_prefix << "\n\n*/\n"
 		body_prefix + body
 	end
 end
