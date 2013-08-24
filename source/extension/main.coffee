@@ -28,18 +28,15 @@ bodyLoaded = false
 # TODO: Find an event that isn’t deprecated. Or maybe just an interval? IDK.
 document.addEventListener 'DOMNodeInserted', (e) ->
 	if typeof(e.relatedNode.tagName) != 'undefined'
-		console.log 'AGAIN'
 		if !asapLoaded
 			d = document.head || document.body
 			if d
-				console.log 'ASAP'
 				asapLoaded = true
 				d.appendChild css
 
 		if !bodyLoaded
 			d = document.body || false
 			if d
-				console.log 'BODY'
 				bodyLoaded = true
 				d.appendChild dex
 				d.appendChild js
