@@ -13,7 +13,7 @@ EXT_CONTENT_SCRIPTS = ['main.coffee']
 
 # safari.extension.baseURI + 'filename'
 # chrome.extension.getURL('filename')
-EXT_EXTRA_RESOURCES = ['jquery-2.0.3.min.js','dex.coffee']
+EXT_EXTRA_RESOURCES = ['dex.coffee']
 
 EXT_BACKGROUND_PAGE = true
 EXT_POPOVER_MENU = true

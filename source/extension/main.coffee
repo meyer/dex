@@ -4,14 +4,11 @@ address = '<%= DEX_URL %>/'
 return unless window.self is window.top # no iframes
 return if ~hostname.indexOf 'localhost' # no localhost
 
-jquery = document.createElement 'script'
 dex = document.createElement 'script'
 
 if window.chrome
-	jquery.src = chrome.extension.getURL 'jquery-2.0.3.min.js'
 	dex.src = chrome.extension.getURL 'dex.js'
 else
-	jquery.src = safari.extension.baseURI + 'jquery-2.0.3.min.js'
 	dex.src = safari.extension.baseURI + 'dex.js'
 
 js = document.createElement 'script'
@@ -44,7 +41,6 @@ document.addEventListener 'DOMNodeInserted', (e) ->
 			if d
 				console.log 'BODY'
 				bodyLoaded = true
-				d.appendChild jquery
 				d.appendChild dex
 				d.appendChild js
 				d.appendChild css.cloneNode()
