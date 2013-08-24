@@ -8,9 +8,9 @@
 			<h1>Dexfiles on <%= url %></h1>
 			<ul>
 <% if !dexfiles.empty? %>
-<% for dexfile in dexfiles %>
+<% for m in all_dexfiles %>
 				<li>
-					<% if $enabled_files.include? dexfile %>ENABLED:<% else %>NOT ENABLED:<% end %><%= dexfile %>
+					<% if dexfiles.include? m %>ENABLED:<% else %>NOT ENABLED:<% end %><%= m %>
 				</li>
 <% end %>
 <% else %>
