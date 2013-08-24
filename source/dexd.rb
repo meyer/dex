@@ -35,29 +35,32 @@ end
 
 Dir.chdir(DEX_DIR)
 
-# config_file = File.join(DEX_DIR,'enabled.txt')
 config = YAML::load_file 'enabled.yaml'
 
 # GLOBFEST
-folders = config.delete('global').map! {|s| "global/#{s}"}
+$modules = {'global' => config.delete('global').map! {|s| "global/#{s}"}}
+$all_modules = Dir.glob("{*/,*/*/}").sort.map! {|s| s[0...-1]}
+$css = {'global' => Dir.glob("{#{$modules['global'].join ','}}/*.css")}
+$js = {'global' => Dir.glob("{#{$modules['global'].join ','}}/*.js")}
 
-$css = {'global' => Dir.glob("{#{folders.join ','}}/*.css")}
-$js = {'global' => Dir.glob("{#{folders.join ','}}/*.js")}
-
-config.each do |hostname,folderList|
+config.each do |hostname,moduleList|
 	glob_str = [hostname]
+	$modules[hostname] = []
 
-	folderList.each do |folder|
-		# Include a module from another site
-		if folder.include? '/'
-			glob_str.push folder
+	moduleList.each do |m|
+		# Include a module from another site, i.e. utilities/blackout
+		if m.include? '/'
+			glob_str.push m
+			$modules[hostname].push m
 		else
-			glob_str.push "#{hostname}/#{folder}"
+			glob_str.push "#{hostname}/#{m}"
+			$modules[hostname].push "#{hostname}/#{m}"
 		end
 	end
 
 	$css[hostname] = Dir.glob "{#{glob_str.join ','}}/*.css"
 	$js[hostname] = Dir.glob "{#{glob_str.join ','}}/*.js"
+
 end
 
 $index_template = <<-index_template
@@ -88,16 +91,33 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		if Regexp.last_match
 			url = Regexp.last_match[:url]
 			ext = Regexp.last_match[:ext]
+			dexfiles = []
 
 			if ext == 'css' || ext == 'js'
-				body = build_body(url, ext)
+				if ext == 'css'
+					dexfiles += $css['global']
+					dexfiles += $css[ url ] if $css.has_key? url
+				else
+					dexfiles += $js['global']
+					dexfiles += $js[ url ] if $js.has_key? url
+				end
+
+				puts "Loading #{dexfiles.count} #{ext.upcase} file#{dexfiles.count>1 ? 's':''} for #{url}".console_green
+				body = build_dexfile(dexfiles)
+
 				response.status = 204 if body.empty?
 				response.body = body
+
 			elsif ext == 'html' || ext == 'json'
+
+				dexfiles = $modules['global']
+				dexfiles += $modules[url] if $modules.has_key? url
+				all_dexfiles = Dir.glob("{global/*/,#{url}/*/,utilities/*/}").sort.map! {|s| s[0...-1]}
+
 				if ext == 'html'
 					response.body = ERB.new($site_template).result(binding)
 				elsif ext == 'json'
-					response.body = JSON.generate({})
+					response.body = JSON.generate(dexfiles)
 				end
 			end
 		elsif path == ''
@@ -113,21 +133,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 	end
 
-	def build_body(filename, ext)
-		files = []
-
-		if ext == 'css'
-			files += $css['global']
-			files += $css[ filename ] if $css.has_key? filename
-		elsif ext == 'js'
-			files += $js['global']
-			files += $js[ filename ] if $js.has_key? filename
-		else
-			return 'ERROR'
-		end
-
-		puts "Loading #{files.count} #{ext.upcase} file#{files.count>1 ? 's':''} for #{filename}".console_green
-
+	def build_dexfile(files)
 		body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
 		body = ""
 
@@ -135,6 +141,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			if File.file?(file)
 				body_prefix << "\n[+] #{file}"
 				body << "\n/* @start #{file} */\n" + IO.read(file) + "\n/* @end #{file} */\n\n"
+			else
+				body_prefix << "\n[ ] #{file}"
 			end
 		end
 
