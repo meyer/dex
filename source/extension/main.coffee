@@ -21,29 +21,33 @@ css = document.createElement 'link'
 css.rel = 'stylesheet'
 css.href = address + hostname + '.css'
 
-cssLoaded = false
-jsLoaded = false
+# dex.defer = true
+# js.defer = true
+
+asapLoaded = false
+bodyLoaded = false
 
 # Because DOMContentLoaded is too slow™
 # TODO: Find an event that isn’t deprecated. Or maybe just an interval? IDK.
 document.addEventListener 'DOMNodeInserted', (e) ->
 	if typeof(e.relatedNode.tagName) != 'undefined'
-		if !cssLoaded
-			asap = document.head || document.body
-			if asap
-				# TODO: Load site.com.head.js here?
-				console.log 'CSS Loaded'
-				cssLoaded = true
-				asap.appendChild css
+		console.log 'AGAIN'
+		if !asapLoaded
+			d = document.head || document.body
+			if d
+				console.log 'ASAP'
+				asapLoaded = true
+				d.appendChild css
 
-		if !jsLoaded && (document.body || false)
-			console.log 'JS Loaded'
-			jsLoaded = true
-			document.body.appendChild css.cloneNode()
+		if !bodyLoaded
+			d = document.body || false
+			if d
+				console.log 'BODY'
+				bodyLoaded = true
+				d.appendChild jquery
+				d.appendChild dex
+				d.appendChild js
+				d.appendChild css.cloneNode()
 
-			document.body.appendChild jquery
-			document.body.appendChild dex
-			document.body.appendChild js
-
-		if cssLoaded and jsLoaded
+		if asapLoaded and bodyLoaded
 			this.removeEventListener 'DOMNodeInserted', arguments.callee, false
