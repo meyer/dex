@@ -24,17 +24,17 @@ A fair question, but not one we’ll cover today. If you’d like to install Dex
 3. Go to [localhost:3131][dexurl]. Your browser will complain about the self-signed SSL certificate. Mark the certificate as “trusted”. There’s an “Always Trust” option in there somewhere. Check the box.
 
 ## What now?
-Dex should be up and running all smooth-like with a few default modules loaded. You can see every available module at [localhost:3131][dexurl]. Right now, there aren’t any web controls, but you can modify `~/dex/enabled.yaml` to change stuff that’s being loaded. You’ll need to reload the server for changes to apply (`cd ~/.dex/ && rake daemon:stop && rake daemon:start`), but don’t worry—I’ll be making that a whole lot sexier as soon as I have the time.
+Dex should be up and running all smooth-like with a few default modules loaded. You can see every available module at [localhost:3131][dexurl]. Right now, there aren’t any web controls, but you can modify `~/.dex/enabled.yaml` to change stuff that’s being loaded. You’ll need to reload the server for changes to apply (`cd ~/.dex/ && rake daemon:stop && rake daemon:start`), but don’t worry—I’ll be making that a whole lot sexier as soon as I have the time.
 
 ## Write Yourself a Module
 1. Do you want to modify *one particular site* (`example.com`)?
 
 	1. Create a folder in `~/.dex/` named `example.com`. In your newly created folder, create a folder named something descriptive, like `change background to red`.
-	2. Put CSS and JS files corresponding to the particular module in `change background to red`. Some things to note:
+	2. Put CSS and JS files corresponding to the particular module in `change background to red`.
 
-		* Files are loaded alphabetically, so if you’ve got one file that relies on another, prefix the filename with an underscore or something. Or call it something like “aaaa load first.js” Nokia style. Whatever.
+	Files are loaded alphabetically, so if you’ve got one file that relies on another, prefix the filename with an underscore or something. Or call it something like “aaaa load first.js” Nokia style. Whatever.
 
-		* If you’re unsure how everything’s loading, you can go to `https://localhost:3131/example.com.js` or `https://localhost:3131/example.com.css` to see the file that the extension is loading.
+	If you’re unsure how everything’s loading, you can go to `https://localhost:3131/example.com.js` or `https://localhost:3131/example.com.css` to see the file that the extension is loading.
 
 2. Do you want to modify *every site you visit*?
 
@@ -45,7 +45,7 @@ Dex should be up and running all smooth-like with a few default modules loaded. 
 Dex loads files in the following order:
 
 1. `~/.dex/global/*.{css,js}`
-2. `~/.dex/example.com/*.{css,js}`)
+2. `~/.dex/example.com/*.{css,js}`
 3. `~/.dex/example.com/*/*.{css,js}`
 
 Files are bunched into one file per file type and served over `https`.
