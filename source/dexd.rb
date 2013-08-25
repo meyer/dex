@@ -35,33 +35,40 @@ end
 
 Dir.chdir(DEX_DIR)
 
-config = YAML::load_file 'enabled.yaml'
+$modules = YAML::load_file 'enabled.yaml'
+# $all_modules = Dir.glob("{*/,*/*/}").sort.map {|s| s[0...-1]}
+$disabled_modules = {}
 
-# GLOBFEST
-$modules = {'global' => config.delete('global').map! {|s| "global/#{s}"}}
-$all_modules = Dir.glob("{*/,*/*/}").sort.map! {|s| s[0...-1]}
 $css = {'global' => Dir.glob("{#{$modules['global'].join ','}}/*.css")}
 $js = {'global' => Dir.glob("{#{$modules['global'].join ','}}/*.js")}
 
-config.each do |hostname,moduleList|
+$modules.map do |hostname,moduleList|
 	glob_str = [hostname]
 	$modules[hostname] = []
+	disabled = []
 
-	moduleList.each do |m|
+	moduleList.map! do |m|
 		# Include a module from another site, i.e. utilities/blackout
-		if m.include? '/'
-			glob_str.push m
-			$modules[hostname].push m
+		mod = if m.include? '/' then m else "#{hostname}/#{m}" end
+		if Dir.exists? mod
+			glob_str.push mod
+			$modules[hostname].push mod
 		else
-			glob_str.push "#{hostname}/#{m}"
-			$modules[hostname].push "#{hostname}/#{m}"
+			disabled.push mod
 		end
+	end
+
+	unless disabled.empty?
+		$disabled_modules[hostname] = disabled
 	end
 
 	$css[hostname] = Dir.glob "{#{glob_str.join ','}}/*.css"
 	$js[hostname] = Dir.glob "{#{glob_str.join ','}}/*.js"
 
+	moduleList
 end
+
+puts $disabled_modules
 
 $index_template = <<-index_template
 <%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
@@ -109,6 +116,16 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				response.body = body
 
 			elsif ext == 'html' || ext == 'json'
+
+				if request.query['toggle']
+					folder = request.query['toggle']
+					if Dir.exist? File.join(DEX_DIR, folder)
+						puts "Folder `#{folder}` exists"
+					else
+						puts "Folder `#{folder}` does not exist"
+					end
+					folder.gsub!("#{url}/","")
+				end
 
 				dexfiles = $modules['global']
 				dexfiles += $modules[url] if $modules.has_key? url
