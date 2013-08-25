@@ -5,7 +5,6 @@ require 'erb'
 require 'yaml'
 require 'webrick'
 require 'webrick/https'
-require 'json'
 
 DEX_DIR = "<%= DEX_DIR %>"
 DEX_VERSION = "<%= @ext_version %>"
@@ -50,9 +49,9 @@ $modules.map do |hostname,moduleList|
 	moduleList.map! do |m|
 		# Include a module from another site, i.e. utilities/blackout
 		mod = if m.include? '/' then m else "#{hostname}/#{m}" end
-		if Dir.exists? mod
+		if File.directory? mod
 			glob_str.push mod
-			$modules[hostname].push mod
+			$modules[hostname].push m
 		else
 			disabled.push mod
 		end
@@ -68,7 +67,7 @@ $modules.map do |hostname,moduleList|
 	moduleList
 end
 
-puts $disabled_modules
+puts "Disabled modules (to be deleted from enabled.yaml):\n#{$disabled_modules.to_yaml}\n"
 
 $index_template = <<-index_template
 <%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
@@ -83,7 +82,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		path = request.path.gsub!(/^\//,'')
 
 		# Won’t match non-dot URLs (ex: localhost) or URLs with port numbers
-		/^(?<url>[\w\-_]+\.[\w\-_\.]+)\.(?<ext>css|html|json|js)$/ =~ path
+		/^([\w\-_]+\.[\w\-_\.]+)\.(css|html|js)$/ =~ path
 
 		response.status = 200
 
@@ -96,11 +95,12 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		ext = 'html'
 
 		if Regexp.last_match
-			url = Regexp.last_match[:url]
-			ext = Regexp.last_match[:ext]
+			url = Regexp.last_match[1]
+			ext = Regexp.last_match[2]
 			dexfiles = []
 
 			if ext == 'css' || ext == 'js'
+
 				if ext == 'css'
 					dexfiles += $css['global']
 					dexfiles += $css[ url ] if $css.has_key? url
@@ -115,38 +115,60 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				response.status = 204 if body.empty?
 				response.body = body
 
-			elsif ext == 'html' || ext == 'json'
+			elsif ext == 'html'
+
+				GC.start
+
+				global_dexfiles = $modules['global']
+				site_dexfiles = []
+				site_dexfiles = $modules[ url ] if $modules.has_key? url
+
+				global_dexfiles.map! {|s| "global/#{s}"}
+				site_dexfiles.map! {|s| "#{url}/#{s}"}
+
+				all_global_dexfiles = Dir.glob('global/*/').map {|s| s[0...-1]}
+				all_site_dexfiles = Dir.glob("{#{url}/*/,utilities/*/}").map {|s| s[0...-1]}
 
 				if request.query['toggle']
-					folder = request.query['toggle']
-					if Dir.exist? File.join(DEX_DIR, folder)
+					folder = request.query['toggle'].to_s
+
+					k, mod = folder.split('/',2)
+
+					if File.directory? folder
 						puts "Folder `#{folder}` exists"
+
+						if site_dexfiles.delete folder
+							puts "`#{folder}` toggled off"
+						else
+							puts "`#{folder}` toggled on (1)"
+							site_dexfiles.push(folder).sort
+						end
+
 					else
 						puts "Folder `#{folder}` does not exist"
 					end
-					folder.gsub!("#{url}/","")
 				end
 
-				dexfiles = $modules['global']
-				dexfiles += $modules[url] if $modules.has_key? url
-				all_dexfiles = Dir.glob("{global/*/,#{url}/*/,utilities/*/}").sort.map! {|s| s[0...-1]}
+				puts site_dexfiles.to_yaml
+				puts all_site_dexfiles.to_yaml
+				puts global_dexfiles.to_yaml
+				puts all_global_dexfiles.to_yaml
 
-				if ext == 'html'
-					response.body = ERB.new($site_template).result(binding)
-				elsif ext == 'json'
-					response.body = JSON.generate(dexfiles)
-				end
+				response.body = ERB.new($site_template).result(binding)
 			end
-		elsif path == ''
-			puts 'INDEX PAGE'
-			response.body = ERB.new($index_template).result(binding)
+
 		else
-			puts "404: #{path} not found".console_red
-			response.status = 404
-			response.body = "`#{path}` does not exist."
+			if path == ''
+				puts 'INDEX PAGE'
+				response.body = ERB.new($index_template).result(binding)
+			else
+				puts "404: #{path} not found".console_red
+				response.status = 404
+				response.body = "`#{path}` does not exist."
+			end
 		end
 
-		response['Content-Type'] = content_types[ext]+"; charset=utf-8"
+		response['Content-Type'] = "#{content_types[ext]}; charset=utf-8"
 
 	end
 
@@ -157,15 +179,14 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		files.each do |file|
 			if File.file?(file)
 				body_prefix << "\n[+] #{file}"
-				body << "\n/* @start #{file} */\n" + IO.read(file) + "\n/* @end #{file} */\n\n"
+				body << "\n/* @start #{file} */\n#{IO.read(file)}\n/* @end #{file} */\n\n"
 			else
 				body_prefix << "\n[ ] #{file}"
 			end
 		end
 
 		body_prefix << "\n\n*/\n"
-		body_prefix + body
-
+		"#{body_prefix}#{body}"
 	end
 end
 

@@ -2,19 +2,31 @@
 <html>
 	<head>
 		<title>Dexfiles</title>
+		<link rel="stylesheet" href="/site.css">
+		<script src="/site.js"></script>
 	</head>
 	<body>
 		<li>
 			<h1>Dexfiles on <%= url %></h1>
 			<ul>
-<% if !dexfiles.empty? %>
-<% for m in all_dexfiles %>
+<% if !site_dexfiles.empty? %>
+<% for m in all_site_dexfiles %>
 				<li>
-					<% if dexfiles.include? m %>ENABLED:<% else %>NOT ENABLED:<% end %><%= m %>
+					<a href="/<%= url %>.html?toggle=<%= m %>"><% if site_dexfiles.include? m %>ENABLED:<% else %>NOT ENABLED:<% end %><%= m %></a>
 				</li>
 <% end %>
 <% else %>
-				<li class="empty">No dexfiles :(</li>
+				<li class="empty">No site dexfiles :(</li>
+<% end %>
+
+<% if !global_dexfiles.empty? %>
+<% for m in all_global_dexfiles %>
+				<li>
+					<a href="/<%= url %>.html?toggle=<%= m %>"><% if global_dexfiles.include? m %>ENABLED:<% else %>NOT ENABLED:<% end %><%= m %></a>
+				</li>
+<% end %>
+<% else %>
+				<li class="empty">No site dexfiles :(</li>
 <% end %>
 			</ul>
 		</li>
