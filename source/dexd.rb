@@ -34,54 +34,65 @@ end
 
 Dir.chdir(DEX_DIR)
 
-$modules = YAML::load_file 'enabled.yaml'
-# $all_modules = Dir.glob("{*/,*/*/}").sort.map {|s| s[0...-1]}
-$disabled_modules = {}
+# TODO: Cache modules unless the ~/.dex folder changes. Maybe? Performance?
+def accio_modules(hostname)
+	urls = ['global']
 
-$css = {'global' => Dir.glob("{#{$modules['global'].join ','}}/*.css")}
-$js = {'global' => Dir.glob("{#{$modules['global'].join ','}}/*.js")}
+	if hostname == '*'
+		# All site directories
+		urls += Dir.glob('*.*/').map {|s| s[0...-1]}
+	else
+		# Just the hostname site directory
+		urls.push "#{hostname}"
+	end
 
-$modules.map do |hostname,moduleList|
-	glob_str = [hostname]
-	$modules[hostname] = []
-	disabled = []
+	orig_yaml_modules = YAML::load_file('enabled.yaml')
+	all_yaml_modules = orig_yaml_modules.reject {|k,v| !urls.include? k}
 
-	moduleList.map! do |m|
-		# Include a module from another site, i.e. utilities/blackout
-		mod = if m.include? '/' then m else "#{hostname}/#{m}" end
-		if File.directory? mod
-			glob_str.push mod
-			$modules[hostname].push m
-		else
-			disabled.push mod
+	ret = {}
+
+	urls.each do |url|
+		# Include `utilities` for site folders only
+		glob_str = "{#{url},utilities}/*/"
+		glob_str = "#{url}/*/" if url == 'global'
+
+		available = Dir.glob(glob_str).map {|s| s[0...-1]}
+		enabled = []
+		disabled = []
+		rejected = []
+
+		if all_yaml_modules.has_key? url
+			yaml_modules = all_yaml_modules[url].map {|mod|
+				if mod.include?('/') then mod else "#{url}/#{mod}" end
+			}
+
+			enabled = yaml_modules.select {|mod| available.include? mod}
+			disabled = available - yaml_modules
+			rejected = yaml_modules - available
 		end
+
+		ret[url] = {
+			'available' => available,
+			'enabled' => enabled,
+			'disabled' => disabled,
+			'rejected' => rejected
+		}
+
+		puts "# Loading #{enabled.size} dexfile#{if enabled.size != 1 then 's' end} for #{url}".console_green
+		puts ret[url].to_yaml
+
 	end
 
-	unless disabled.empty?
-		$disabled_modules[hostname] = disabled
-	end
+	ret['all'] = orig_yaml_modules
 
-	$css[hostname] = Dir.glob "{#{glob_str.join ','}}/*.css"
-	$js[hostname] = Dir.glob "{#{glob_str.join ','}}/*.js"
+	ret
 
-	moduleList
 end
-
-puts "Disabled modules (to be deleted from enabled.yaml):\n#{$disabled_modules.to_yaml}\n"
-
-$index_template = <<-index_template
-<%= File.read File.join(SERVER_SOURCE_DIR,'index.html') %>
-index_template
-
-$site_template = <<-site_template
-<%= File.read File.join(SERVER_SOURCE_DIR,'site.html') %>
-site_template
 
 class DexServer < WEBrick::HTTPServlet::AbstractServlet
 	def do_GET(request, response)
 		path = request.path.gsub!(/^\//,'')
 
-		# Won’t match non-dot URLs (ex: localhost) or URLs with port numbers
 		/^([\w\-_]+\.[\w\-_\.]+)\.(css|html|js)$/ =~ path
 
 		response.status = 200
@@ -89,110 +100,93 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		content_types = {
 			'css' => 'text/css',
 			'html' => 'text/html',
-			'json' => 'application/json',
 			'js' => 'application/javascript'
 		}
-		ext = 'html'
 
 		if Regexp.last_match
 			url = Regexp.last_match[1]
 			ext = Regexp.last_match[2]
-			dexfiles = []
-
-			if ext == 'css' || ext == 'js'
-
-				if ext == 'css'
-					dexfiles += $css['global']
-					dexfiles += $css[ url ] if $css.has_key? url
-				else
-					dexfiles += $js['global']
-					dexfiles += $js[ url ] if $js.has_key? url
-				end
-
-				puts "Loading #{dexfiles.count} #{ext.upcase} file#{dexfiles.count>1 ? 's':''} for #{url}".console_green
-				body = build_dexfile(dexfiles)
-
-				response.status = 204 if body.empty?
-				response.body = body
-
-			elsif ext == 'html'
-
-				GC.start
-
-				global_dexfiles = $modules['global']
-				site_dexfiles = []
-				site_dexfiles = $modules[ url ] if $modules.has_key? url
-
-				global_dexfiles.map! {|s| "global/#{s}"}
-				site_dexfiles.map! {|s| "#{url}/#{s}"}
-
-				all_global_dexfiles = Dir.glob('global/*/').map {|s| s[0...-1]}
-				all_site_dexfiles = Dir.glob("{#{url}/*/,utilities/*/}").map {|s| s[0...-1]}
-
-				if request.query['toggle']
-					folder = request.query['toggle'].to_s
-
-					k, mod = folder.split('/',2)
-
-					if File.directory? folder
-						puts "Folder `#{folder}` exists"
-
-						if site_dexfiles.delete folder
-							puts "`#{folder}` toggled off"
-						else
-							puts "`#{folder}` toggled on (1)"
-							site_dexfiles.push(folder).sort
-						end
-
-					else
-						puts "Folder `#{folder}` does not exist"
-					end
-				end
-
-				puts site_dexfiles.to_yaml
-				puts all_site_dexfiles.to_yaml
-				puts global_dexfiles.to_yaml
-				puts all_global_dexfiles.to_yaml
-
-				response.body = ERB.new($site_template).result(binding)
-			end
-
+			response['Content-Type'] = "#{content_types[ext]}; charset=utf-8"
+			response = generate_response(url,ext,request,response)
 		else
 			if path == ''
-				puts 'INDEX PAGE'
-				response.body = ERB.new($index_template).result(binding)
+				response = generate_response('*',ext,request,response)
 			else
 				puts "404: #{path} not found".console_red
 				response.status = 404
 				response.body = "`#{path}` does not exist."
 			end
 		end
-
-		response['Content-Type'] = "#{content_types[ext]}; charset=utf-8"
-
 	end
 
-	def build_dexfile(files)
-		body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
-		body = ""
+	def generate_response(url,ext,request,response)
 
-		files.each do |file|
-			if File.file?(file)
-				body_prefix << "\n[+] #{file}"
-				body << "\n/* @start #{file} */\n#{IO.read(file)}\n/* @end #{file} */\n\n"
-			else
-				body_prefix << "\n[ ] #{file}"
+		m = accio_modules(url)
+		modules = m['global']['enabled'] + ["#{url}"] + m[url]['enabled']
+
+		if ext == 'css' || ext == 'js'
+			files = Dir.glob "{#{modules.join(',')}}/*.#{ext}"
+
+			puts "","Loading #{ext.upcase} for #{url}".console_green
+			puts modules.to_yaml
+
+			body_prefix = "/* dexd #{DEX_VERSION} at your service.\n"
+			body = ""
+
+			files.each do |file|
+				if File.file?(file)
+					body_prefix << "\n[+] #{file}"
+					body << "\n/* @start #{file} */\n#{IO.read(file)}\n/* @end #{file} */\n\n"
+				else
+					body_prefix << "\n[ ] #{file}"
+				end
 			end
-		end
 
-		body_prefix << "\n\n*/\n"
-		"#{body_prefix}#{body}"
+			body_prefix << "\n\n*/\n"
+
+			response.status = 204 if body.empty?
+			response.body = "#{body_prefix}#{body}"
+
+		elsif ext == 'html'
+
+			global_dexfiles = m['global']['enabled']
+			site_dexfiles = m[url]['enabled']
+			disabled_dexfiles = m['global']['disabled'] + m[url]['disabled']
+
+			if request.query['toggle'] and request.query['toggle'].include? '/'
+				folder = request.query['toggle'].to_s
+
+				k, mod = folder.split('/',2)
+
+				if File.directory? folder
+					puts "Folder `#{folder}` exists"
+
+					if site_dexfiles.delete folder
+						puts "`#{folder}` toggled off"
+					else
+						puts "`#{folder}` toggled on (1)"
+						site_dexfiles.push(folder).sort
+					end
+
+				else
+					puts "Folder `#{folder}` does not exist"
+				end
+			end
+
+			tpl = (url == '*') ? $index_template : $site_template
+			response.body = ERB.new(tpl).result(binding)
+		end
+		response
 	end
 end
 
 ssl_info = DATA.read
 ssl_cert = ssl_info.scan(/(-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----)/m)[0][0]
 ssl_key = ssl_info.scan(/(-----BEGIN RSA PRIVATE KEY-----.+?-----END RSA PRIVATE KEY-----)/m)[0][0]
+
+$index_template = <<-index_template<%= "\n"+(File.read File.join(SERVER_SOURCE_DIR,'index.html'))+"\n" %>index_template
+
+$site_template = <<-site_template<%= "\n"+(File.read File.join(SERVER_SOURCE_DIR,'site.html'))+"\n" %>site_template
 
 server_options = {
 	:Host => DEX_HOSTNAME,
