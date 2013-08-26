@@ -1,6 +1,8 @@
 loadURL = (url) ->
 	# Strip down to hostname
 	url = url.split('//')[1].split('/')[0]
+	return if ~url.indexOf('//localhost:')
+
 	# Remove www
 	url = url.replace /^www\./, ''
 
