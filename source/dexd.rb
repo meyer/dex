@@ -36,22 +36,22 @@ Dir.chdir(DEX_DIR)
 
 # TODO: Cache modules unless the ~/.dex folder changes. Maybe? Performance?
 def accio_modules(hostname)
-	urls = ['global']
+	site_urls = ['global']
 
 	if hostname == '*'
 		# All site directories
-		urls += Dir.glob('*.*/').map {|s| s[0...-1]}
+		site_urls += Dir.glob('*.*/').map {|s| s[0...-1]}
 	else
 		# Just the hostname site directory
-		urls.push "#{hostname}"
+		site_urls.push "#{hostname}"
 	end
 
-	orig_yaml_modules = YAML::load_file('enabled.yaml')
-	all_yaml_modules = orig_yaml_modules.reject {|k,v| !urls.include? k}
+	all_yaml_modules = YAML::load_file('enabled.yaml') || Hash.new
 
 	ret = {}
+	rejected = []
 
-	urls.each do |url|
+	site_urls.each do |url|
 		# Include `utilities` for site folders only
 		glob_str = "{#{url},utilities}/*/"
 		glob_str = "#{url}/*/" if url == 'global'
@@ -59,31 +59,36 @@ def accio_modules(hostname)
 		available = Dir.glob(glob_str).map {|s| s[0...-1]}
 		enabled = []
 		disabled = []
-		rejected = []
 
 		if all_yaml_modules.has_key? url
-			yaml_modules = all_yaml_modules[url].map {|mod|
-				if mod.include?('/') then mod else "#{url}/#{mod}" end
-			}
 
-			enabled = yaml_modules.select {|mod| available.include? mod}
-			disabled = available - yaml_modules
-			rejected = yaml_modules - available
+			all_yaml_modules[url].delete_if do |mod|
+				modPath = mod.include?('/') ? mod : "#{url}/#{mod}"
+				if available.include? modPath
+					enabled.push modPath
+					false
+				else
+					rejected.push modPath
+					true
+				end
+			end
+
+			disabled = available - enabled
 		end
 
 		ret[url] = {
 			'available' => available,
 			'enabled' => enabled,
-			'disabled' => disabled,
-			'rejected' => rejected
+			'disabled' => disabled
 		}
 
-		puts "# Loading #{enabled.size} dexfile#{if enabled.size != 1 then 's' end} for #{url}".console_green
-		puts ret[url].to_yaml
+		# puts "# Loading #{enabled.size} dexfile#{if enabled.size != 1 then 's' end} for #{url}".console_green
+		# puts ret[url].to_yaml
 
 	end
 
-	ret['all'] = orig_yaml_modules
+	ret['all'] = all_yaml_modules
+	ret['rejected'] = rejected
 
 	ret
 
@@ -154,18 +159,55 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			disabled_dexfiles = m['global']['disabled'] + m[url]['disabled']
 
 			if request.query['toggle'] and request.query['toggle'].include? '/'
-				folder = request.query['toggle'].to_s
+				folder = request.query['toggle']
 
-				k, mod = folder.split('/',2)
+				hostname, moduleDir = folder.split('/',2)
 
 				if File.directory? folder
 					puts "Folder `#{folder}` exists"
 
-					if site_dexfiles.delete folder
-						puts "`#{folder}` toggled off"
+					modules = accio_modules('*')
+
+					# Global or site module?
+					if folder.include? 'global/'
+						file_hash = global_dexfiles
+						mod = modules['all']['global']
+						module_key = 'global'
 					else
-						puts "`#{folder}` toggled on (1)"
-						site_dexfiles.push(folder).sort
+						file_hash = site_dexfiles
+						mod = (modules['all'].has_key? url) ? modules['all'][url] : []
+						module_key = 'site'
+					end
+
+					folder_name = folder.to_s.gsub(/^(#{url}|global)\//,'')
+
+					# The dirty work
+					if file_hash.delete folder
+						puts "`#{folder}` toggled off"
+						disabled_dexfiles.push folder
+
+						if mod.include? folder_name
+							mod.delete(folder_name)
+							puts "Folder `#{folder}` is an active #{module_key} module. Deactivate it!"
+						else
+							puts "Folder `#{folder}` is already an active #{module_key} module.", mod.to_yaml
+						end
+					else
+						puts "`#{folder}` toggled on"
+						file_hash.push folder
+						disabled_dexfiles.delete folder
+
+						unless mod.include? folder_name
+							mod.push(folder_name.to_s)
+							puts "Folder `#{folder}` is an inactive #{module_key} module. Activate it!"
+						else
+							puts "Folder `#{folder}` is already an inactive #{module_key} module. Carry on…", mod.to_yaml
+						end
+					end
+
+					File.open('enabled.yaml','w+') do |f|
+						puts "Save modified config file…"
+						YAML::dump(modules['all'],f)
 					end
 
 				else
