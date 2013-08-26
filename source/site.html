@@ -6,30 +6,53 @@
 		<script src="/site.js"></script>
 	</head>
 	<body>
-		<li>
-			<h1>Dexfiles on <%= url %></h1>
-			<ul>
+		<h1>Dexfiles on <%= url %></h1>
+		<ul>
+
+			<li>
+				<h2>Site Files</h2>
+				<ul>
 <% if !site_dexfiles.empty? %>
-<% for m in all_site_dexfiles %>
-				<li>
-					<a href="/<%= url %>.html?toggle=<%= m %>"><% if site_dexfiles.include? m %>ENABLED:<% else %>NOT ENABLED:<% end %><%= m %></a>
-				</li>
+<% for m in site_dexfiles %>
+					<li>
+						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
+					</li>
 <% end %>
 <% else %>
-				<li class="empty">No site dexfiles :(</li>
+					<li class="empty">No site dexfiles :(</li>
 <% end %>
+				</ul>
+			</li>
 
+			<li>
+				<h2>Global Files</h2>
+				<ul>
 <% if !global_dexfiles.empty? %>
-<% for m in all_global_dexfiles %>
-				<li>
-					<a href="/<%= url %>.html?toggle=<%= m %>"><% if global_dexfiles.include? m %>ENABLED:<% else %>NOT ENABLED:<% end %><%= m %></a>
-				</li>
+<% for m in global_dexfiles %>
+					<li>
+						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
+					</li>
 <% end %>
 <% else %>
-				<li class="empty">No site dexfiles :(</li>
+					<li class="empty">No global dexfiles :(</li>
 <% end %>
-			</ul>
-		</li>
+				</ul>
+			</li>
 
+			<li>
+				<h2>Disabled Files</h2>
+				<ul>
+<% if !disabled_dexfiles.empty? %>
+<% for m in disabled_dexfiles %>
+					<li>
+						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
+					</li>
+<% end %>
+<% else %>
+					<li class="empty">No disabled dexfiles :(</li>
+<% end %>
+				</ul>
+			</li>
+		</ul>
 	</body>
 </html>
