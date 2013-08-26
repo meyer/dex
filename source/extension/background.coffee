@@ -17,7 +17,7 @@ updateBadgeCount = (badgeText) ->
 			return if selectedID == tab.id
 			selectedID = tab.id
 
-			if ~tab.url.indexOf('chrome://') || ~tab.url.indexOf('chrome-extension://')
+			if ~tab.url.indexOf('//localhost:') || ~tab.url.indexOf('chrome://') || ~tab.url.indexOf('chrome-extension://')
 				chrome.browserAction.disable tab.id
 				chrome.browserAction.setBadgeText
 					"text": ''
@@ -34,7 +34,7 @@ updateBadgeCount = (badgeText) ->
 		for item in safari.extension.toolbarItems
 			break if item.identifier != "DexToolbarItem"
 
-			item.disabled = !item.browserWindow.activeTab.url
+			item.disabled = (!item.browserWindow.activeTab.url || ~item.browserWindow.activeTab.url.indexOf('//localhost:'))
 			badgeText = 0 if item.disabled
 			badgeText = item.browserWindow.activeTab.url.length if !item.disabled
 			item.badge = badgeText if 'badge' of item
