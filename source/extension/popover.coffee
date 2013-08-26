@@ -1,8 +1,10 @@
 loadURL = (url) ->
-	return if ~url.indexOf('//localhost:')
+	console.log "URL: #{url}"
+	# TODO: Use official method to detect invalid Chrome/Safari pages
+	return if ~url.indexOf('chrome://') || ~url.indexOf('//localhost:')
 
 	# Strip down to hostname
-	url = url.split('//')[1].split('/')[0]
+	url = url.split('://')[1].split('/')[0]
 
 	# Remove www
 	url = url.replace /^www\./, ''

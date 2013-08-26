@@ -14,7 +14,7 @@ updateBadgeCount = (badgeText) ->
 			tab = tabs[0]
 			currentPageURL = tab.url
 
-			return if selectedID == tab.id
+			console.log 'selectedID == tab.id' if selectedID == tab.id
 			selectedID = tab.id
 
 			if ~tab.url.indexOf('//localhost:') || ~tab.url.indexOf('chrome://') || ~tab.url.indexOf('chrome-extension://')
@@ -22,11 +22,13 @@ updateBadgeCount = (badgeText) ->
 				chrome.browserAction.setBadgeText
 					"text": ''
 					tabId: tab.id
+				console.log "Disable tab: #{tab.url}"
 			else
 				chrome.browserAction.enable tab.id
 				chrome.browserAction.setBadgeText
 					"text": badgeText+''
 					tabId: tab.id
+				console.log "Enable tab: #{tab.url}"
 
 	if window.safari
 		currentPageURL = safari.application.activeBrowserWindow.activeTab.url
@@ -34,10 +36,12 @@ updateBadgeCount = (badgeText) ->
 		for item in safari.extension.toolbarItems
 			break if item.identifier != "DexToolbarItem"
 
-			item.disabled = (!item.browserWindow.activeTab.url || ~item.browserWindow.activeTab.url.indexOf('//localhost:'))
+			item.disabled = !item.browserWindow.activeTab.url || ~item.browserWindow.activeTab.url.indexOf('//localhost:')
 			badgeText = 0 if item.disabled
 			badgeText = item.browserWindow.activeTab.url.length if !item.disabled
 			item.badge = badgeText if 'badge' of item
+
+	console.log "Updated badge text to #{badgeText}"
 	return
 
 # Events
@@ -55,11 +59,14 @@ if window.safari
 	safari.application.addEventListener "activate", activateHandler, true
 	safari.application.addEventListener "validate", activateHandler, true
 
-else if window.chrome
+if window.chrome
 	# Fired when page is refreshed
 	chrome.tabs.onUpdated.addListener (tabID, props) ->
 		if props.status == "complete" && tabID == selectedID
-			console.log "New page loaded"
+			console.log "New page loaded (#{tabID})"
+			updateBadgeCount tabID
+		else
+			console.log "HALP (#{tabID})"
 			updateBadgeCount tabID
 
 	# Fired when tab is changed
