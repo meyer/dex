@@ -48,6 +48,8 @@ def accio_modules(hostname)
 
 	all_yaml_modules = YAML::load_file('enabled.yaml') || Hash.new
 
+	all_yaml_modules['global'] = [] unless all_yaml_modules.has_key? 'global'
+
 	ret = {}
 	rejected = []
 
@@ -74,6 +76,10 @@ def accio_modules(hostname)
 			end
 
 			disabled = available - enabled
+			unless hostname == '*'
+				puts "SITE: #{url}"
+				puts "AVAILABLE", available.to_yaml, 'ENABLED', enabled.to_yaml, 'DISABLED', disabled.to_yaml
+			end
 		end
 
 		ret[url] = {
@@ -171,13 +177,16 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					# Global or site module?
 					if folder.include? 'global/'
 						file_hash = global_dexfiles
-						mod = modules['all']['global']
 						module_key = 'global'
 					else
 						file_hash = site_dexfiles
-						mod = (modules['all'].has_key? url) ? modules['all'][url] : []
-						module_key = 'site'
+						module_key = url
 					end
+
+					unless modules['all'].has_key? module_key
+						modules['all'][module_key] = []
+					end
+					mod = modules['all'][module_key]
 
 					folder_name = folder.to_s.gsub(/^(#{url}|global)\//,'')
 
@@ -189,6 +198,11 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 						if mod.include? folder_name
 							mod.delete(folder_name)
 							puts "Folder `#{folder}` is an active #{module_key} module. Deactivate it!"
+
+							if mod.length == 0
+								puts "Module key `#{module_key}` is empty. Deleting!"
+								modules['all'].delete module_key
+							end
 						else
 							puts "Folder `#{folder}` is already an active #{module_key} module.", mod.to_yaml
 						end
