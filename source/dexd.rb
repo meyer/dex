@@ -46,6 +46,8 @@ def accio_modules(hostname)
 		site_urls.push "#{hostname}"
 	end
 
+	site_urls.push 'utilities'
+
 	all_yaml_modules = YAML::load_file('enabled.yaml') || Hash.new
 
 	all_yaml_modules['global'] = [] unless all_yaml_modules.has_key? 'global'
@@ -57,6 +59,7 @@ def accio_modules(hostname)
 		# Include `utilities` for site folders only
 		glob_str = "{#{url},utilities}/*/"
 		glob_str = "#{url}/*/" if url == 'global'
+		# glob_str = "#{url}/*/"
 
 		available = Dir.glob(glob_str).map {|s| s[0...-1]}
 		enabled = []
@@ -65,36 +68,46 @@ def accio_modules(hostname)
 		if all_yaml_modules.has_key? url
 
 			all_yaml_modules[url].delete_if do |mod|
-				modPath = mod.include?('/') ? mod : "#{url}/#{mod}"
-				if available.include? modPath
-					enabled.push modPath
-					false
+				modPath = false
+
+				# No slash. Module in site folder
+				if !mod.include? '/'
+					modPath = "#{url}/#{mod}"
+				# Utility module
+				elsif mod.match /^utilities\//
+					modPath = mod
+				end
+
+				if modPath
+					# Module exists?
+					if available.include? modPath
+						enabled.push modPath
+						false
+					else
+						rejected.push modPath
+						true
+					end
 				else
-					rejected.push modPath
+					rejected.push mod
 					true
 				end
 			end
 
 			disabled = available - enabled
-			unless hostname == '*'
-				puts "SITE: #{url}"
-				puts "AVAILABLE", available.to_yaml, 'ENABLED', enabled.to_yaml, 'DISABLED', disabled.to_yaml
-			end
 		end
 
 		ret[url] = {
-			'available' => available,
+			# 'available' => available,
 			'enabled' => enabled,
 			'disabled' => disabled
 		}
-
-		# puts "# Loading #{enabled.size} dexfile#{if enabled.size != 1 then 's' end} for #{url}".console_green
-		# puts ret[url].to_yaml
 
 	end
 
 	ret['all'] = all_yaml_modules
 	ret['rejected'] = rejected
+
+	puts ret.to_yaml
 
 	ret
 
