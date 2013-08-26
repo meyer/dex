@@ -24,7 +24,7 @@ A fair question, but not one we’ll cover today. If you’d like to install Dex
 3. Go to [localhost:3131][dexurl]. Your browser will complain about the self-signed SSL certificate. Mark the certificate as “trusted”. There’s an “Always Trust” option in there somewhere. Check the box.
 
 ## What now?
-Dex should be up and running all smooth-like with a few default modules loaded. You can see every available module at [localhost:3131][dexurl]. Right now, there aren’t any web controls, but you can modify `~/.dex/enabled.yaml` to change stuff that’s being loaded. You’ll need to reload the server for changes to apply (`cd ~/.dex/ && rake daemon:stop && rake daemon:start`), but don’t worry—I’ll be making that a whole lot sexier as soon as I have the time.
+Dex should be up and running all smooth-like with a few default modules loaded. You can see every available module at [localhost:3131][dexurl]. To see all available per-site modules, go to `https://localhost:3131/example.com.html`. Click the module name to enable or disable. It’s still a bit janky, but don’t worry—I’ll be making that a whole lot sexier as soon as I have the time.
 
 ## Write Yourself a Module
 1. Do you want to modify *one particular site* (`example.com`)?
