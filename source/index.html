@@ -4,27 +4,34 @@
 		<title>Dexfiles</title>
 	</head>
 	<body>
-		<li>
-			<h1>Folders</h1>
-			<ul>
-<% if !dexfiles.empty? %>
-<% for folder in dexfiles %>
-				<li>
+		<h1>Folders</h1>
+		<ul>
+<% if !dex_modules.empty? %>
+<% for category, categoryList in dex_modules %>
+			<li>
+				<ul>
+					<h2><%= category %></h2>
 					<ul>
-						<h2><%= folder[0...-1] %></h2>
-						<ul>
-<% for file in Dir.glob(folder+'*.{css,js}').sort %>
-							<li><!-- <%= file.gsub(folder,'') %> --><%= file %></li>
+<% for folder, modList in categoryList %>
+						<li>
+							<h3><a href="/<%= folder %>.html"><%= folder %></a></h3>
+							<ul>
+
+<% for mod in modList %>
+								<li><%= mod %></li>
 <% end %>
-						</ul>
+
+							</ul>
+						</li>
+<% end %>
 					</ul>
-				</li>
+				</ul>
+			</li>
 <% end %>
 <% else %>
-				<li class="empty">No dexfiles :(</li>
+			<li class="empty">No dexfiles :(</li>
 <% end %>
-			</ul>
-		</li>
+		</ul>
 
 	</body>
 </html>
