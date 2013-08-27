@@ -191,7 +191,7 @@ namespace :daemon do
 
 	desc "Build dex daemon to #{SERVER_RELEASE_DIR}"
 	task :build do
-		puts '',"Building dex daemon to #{SERVER_RELEASE_DIR}".console_underline.console_bold
+		puts '',"Building dex daemon to #{SERVER_RELEASE_DIR}".console_underline
 		erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 		puts
 	end
@@ -244,7 +244,7 @@ namespace :daemon do
 	end
 
 	task :confirm_uninstall => :no_root do
-		puts "Uninstall #{EXT_DISPLAY_NAME} #{@ext_version}".console_bold.console_underline
+		puts "Uninstall #{EXT_DISPLAY_NAME} #{@ext_version}".console_underline
 
 		puts "• "+DEX_DAEMON.console_bold+" will be removed from "+DAEMON_DEST_DIR.console_bold+"."
 		puts "• "+"#{EXT_BUNDLE_ID}.plist".console_bold+" will be removed from "+LAUNCHAGENT_DEST_DIR.console_bold+"."

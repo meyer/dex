@@ -10,10 +10,10 @@
 		<ul>
 
 			<li>
-				<h2>Site Files</h2>
+				<h2>Enabled Site Files</h2>
 				<ul>
-<% if !site_dexfiles.empty? %>
-<% for m in site_dexfiles %>
+<% if !dex_modules['enabled']['site'].empty? %>
+<% for m in dex_modules['enabled']['site'] %>
 					<li>
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
@@ -25,10 +25,25 @@
 			</li>
 
 			<li>
-				<h2>Global Files</h2>
+				<h2>Disabled Site Files</h2>
 				<ul>
-<% if !global_dexfiles.empty? %>
-<% for m in global_dexfiles %>
+<% if !dex_modules['disabled']['site'].empty? %>
+<% for m in dex_modules['disabled']['site'] %>
+					<li>
+						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
+					</li>
+<% end %>
+<% else %>
+					<li class="empty">No disabled dexfiles :(</li>
+<% end %>
+				</ul>
+			</li>
+
+			<li>
+				<h2>Enabled Global Files</h2>
+				<ul>
+<% if !dex_modules['enabled']['global'].empty? %>
+<% for m in dex_modules['enabled']['global'] %>
 					<li>
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
@@ -40,10 +55,10 @@
 			</li>
 
 			<li>
-				<h2>Disabled Files</h2>
+				<h2>Disabled Global Files</h2>
 				<ul>
-<% if !disabled_dexfiles.empty? %>
-<% for m in disabled_dexfiles %>
+<% if !dex_modules['disabled']['global'].empty? %>
+<% for m in dex_modules['disabled']['global'] %>
 					<li>
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
