@@ -63,7 +63,6 @@ end
 
 def launchd_worked(launch_output)
 	if launch_output.strip!
-		# puts 'launchctl error: '.console_red+launch_output
 		if launch_output.include? 'No such file'
 			puts '✗ dex daemon is not installed'.console_red
 		elsif launch_output.include? 'Already loaded'
@@ -83,7 +82,7 @@ end
 
 task :default => 'daemon:install'
 task :release => ['extension:build_release', 'daemon:build']
-task :dev => ['extension:build_dev', 'daemon:build', 'daemon:link']
+task :dev => ['extension:build_dev', 'daemon:build']
 
 namespace :daemon do
 	desc 'Install dex daemon'
@@ -191,7 +190,7 @@ namespace :daemon do
 
 	desc "Build dex daemon to #{SERVER_RELEASE_DIR}"
 	task :build do
-		puts '',"Building dex daemon to #{SERVER_RELEASE_DIR}".console_underline
+		puts "Building dex daemon to #{SERVER_RELEASE_DIR}".console_underline
 		erb_crunch(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR)
 		puts
 	end
