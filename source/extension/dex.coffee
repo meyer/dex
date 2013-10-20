@@ -1,16 +1,27 @@
-`<%= File.read File.join(EXT_SOURCE_DIR,'jquery-2.0.3.min.js') %>`
-# Per-site config
-
-console.log "Dex jQuery: #{$.fn.jquery}"
-dexJQ = jQuery.noConflict(true)
-console.log "Page jQuery: "+(if $? && $.fn? then "#{$.fn.jquery}" else 'none')
+# http://github.com/ded/domready
+`<%= File.read File.join(EXT_SOURCE_DIR,'ready.js') %>`
 
 window.dex = new ->
 	_cache = {}
 	conf = false
 
 	@utils =
-		jquery: dexJQ
+		ajax: (o, callback) ->
+			data = {}
+			method = 'POST'
+
+			if 'data' in o
+				data = o.data
+			if 'type' in o
+				method = o.type
+
+			xmlhttp = new XMLHttpRequest()
+			xmlhttp.onreadystatechange = () ->
+			if xmlhttp.readyState == 4 && xmlhttp.status == 200
+				callback(xmlhttp.responseText)
+
+			xmlhttp.open(method, o.url, true)
+			xmlhttp.send()
 
 	@__defineSetter__ 'config', (configDict) ->
 		conf = {}
