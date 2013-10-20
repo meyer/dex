@@ -1,5 +1,3 @@
-# http://github.com/ded/domready
-`<%= File.read File.join(EXT_SOURCE_DIR,'ready.js') %>`
 
 window.dex = new ->
 	_cache = {}
