@@ -86,6 +86,8 @@ def accio_modules(hostname=false)
 		# Only keep dotted folders and `global`
 		if url.include?('.') or url == 'global'
 
+			modList = {} if !modList
+
 			# Prune non-existent folders
 			modList.delete_if do |mod|
 
@@ -290,9 +292,12 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 							keys.unshift 'global' if keys.delete 'global'
 
 							keys.each do |k|
-								file_contents << "\n#{k}:"
-								dex_modules['all'][k].each do |v|
-									file_contents << "\n- #{yaml_escape(v)}"
+								if dex_modules['all'][k].length > 0
+									file_contents << "\n#{k}:"
+
+									dex_modules['all'][k].each do |v|
+										file_contents << "\n- #{yaml_escape(v)}"
+									end
 								end
 							end
 
