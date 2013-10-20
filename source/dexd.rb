@@ -253,7 +253,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 						# The dirty work
 						if dex_modules['enabled'][module_scope].delete(folder)
-							dex_modules['disabled'][module_scope].push folder
+							dex_modules['disabled'][module_scope].push(folder).sort!
 
 							if site_config.include?(module_name)
 								puts_maybe "  > Folder `#{folder}` is an active #{module_scope} module. Deactivate it!"
@@ -267,7 +267,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 								puts_maybe "  > Folder `#{folder}` is already an active #{module_scope} module.", site_config.to_yaml
 							end
 						else
-							dex_modules['enabled'][module_scope].push folder
+							dex_modules['enabled'][module_scope].push(folder).sort!
 							dex_modules['disabled'][module_scope].delete folder
 
 							unless site_config.include?(module_name)
@@ -295,7 +295,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 								if dex_modules['all'][k].length > 0
 									file_contents << "\n#{k}:"
 
-									dex_modules['all'][k].each do |v|
+									dex_modules['all'][k].sort.each do |v|
 										file_contents << "\n- #{yaml_escape(v)}"
 									end
 								end
