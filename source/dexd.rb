@@ -181,7 +181,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			end
 
 			# Probably don’t need all these capture groups.
-			/^(?<url>[\w\-_]+\.[\w\-_\.]+)\/(?<mod>[\w\s\-]+)\/(?<filename>[\w\s\-_\.]+)\.(?<ext>png|svg)$/ =~ path
+			# TODO: Decent filename whitelist regex
+			/^(?<url>[\w\-_]+\.[\w\-_\.]+)\/(?<mod>[\w\s\-]+)\/(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg)$/ =~ path
 
 			if Regexp.last_match
 				file_path = File.join(DEX_DIR,path)
