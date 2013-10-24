@@ -153,19 +153,22 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 		path = request.path.gsub!(/^\//,'')
 
-		/^([\w\-_]+\.[\w\-_\.]+)\.(css|html|js)$/ =~ path
+		# TODO: Something better than Regexp.last_match
+		/^(?<url>[\w\-_]+\.[\w\-_\.]+)\.(?<ext>css|html|js)$/ =~ path
 
 		response.status = 200
 
 		content_types = {
-			'css' => 'text/css',
+			'css'  => 'text/css',
 			'html' => 'text/html',
-			'js' => 'application/javascript'
+			'js'   => 'application/javascript',
+			'svg'  => 'image/svg+xml',
+			'png'  => 'image/png'
 		}
 
 		if Regexp.last_match
-			url = Regexp.last_match[1]
-			ext = Regexp.last_match[2]
+			url = Regexp.last_match[:url]
+			ext = Regexp.last_match[:ext]
 			response['Content-Type'] = "#{content_types[ext]}; charset=utf-8"
 			response = generate_response(url,ext,request,response)
 		else
@@ -174,11 +177,28 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				dex_modules = accio_modules()
 				response['Content-Type'] = "text/html; charset=utf-8"
 				response.body = ERB.new($index_template).result(binding)
-			else
-				puts "404: #{path} not found".console_red
-				response.status = 404
-				response.body = "`#{path}` does not exist."
+				return
 			end
+
+			# Probably don’t need all these capture groups.
+			/^(?<url>[\w\-_]+\.[\w\-_\.]+)\/(?<mod>[\w\s\-]+)\/(?<filename>[\w\s\-_\.]+)\.(?<ext>png|svg)$/ =~ path
+
+			if Regexp.last_match
+				file_path = File.join(DEX_DIR,path)
+				if File.exist?(file_path)
+					response['Content-Type'] = "#{content_types[ext]}; charset=utf-8"
+					response.body = IO.read(file_path)
+					return
+				else
+					puts_maybe "File `#{file_path}` doesn’t exist :("
+				end
+			else
+				puts_maybe 'File regex was not a match'
+			end
+
+			puts "404: #{path} not found".console_red
+			response.status = 404
+			response.body = "`#{path}` does not exist."
 		end
 	end
 
@@ -352,7 +372,7 @@ server.mount('/', DexServer)
 trap 'INT' do server.shutdown end
 trap 'TERM' do server.shutdown end
 
-puts "dexd #{DEX_VERSION} at your service…".console_green
+puts '', "dexd #{DEX_VERSION} at your service…".console_green, "verbose: #{DEX_VERBOSE}", ''
 server.start
 
 __END__
