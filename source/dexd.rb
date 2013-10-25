@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 require 'erb'
+require 'uri'
 require 'yaml'
 require 'webrick'
 require 'webrick/https'
@@ -153,6 +154,15 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 		path = request.path.gsub!(/^\//,'')
 
+		referer = false
+
+		if request['Referer']
+			referer = URI(request['Referer']).host.gsub!(/^www./,'')
+			puts "Referring hostname: #{referer}".console_green
+		else
+			puts "Referring hostname: blank".console_red
+		end
+
 		# TODO: Something better than Regexp.last_match
 		/^(?<url>[\w\-_]+\.[\w\-_\.]+)\.(?<ext>css|html|js)$/ =~ path
 
@@ -180,12 +190,32 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				return
 			end
 
+			file_path = false
+
 			# Probably don’t need all these capture groups.
 			# TODO: Decent filename whitelist regex
 			/^(?<url>[\w\-_]+\.[\w\-_\.]+)\/(?<mod>[\w\s\-]+)\/(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg)$/ =~ path
 
 			if Regexp.last_match
 				file_path = File.join(DEX_DIR,path)
+			else
+
+				# Handy shortcut: omit the hostname. Probably going to make this standard behaviour.
+				/^(?<mod>[\w\s\-]+)\/(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg)$/ =~ path
+
+				if Regexp.last_match
+					if referer
+						puts_maybe "Requested URL is missing a hostname. Appending `#{referer}` to `#{path}`."
+						file_path = File.join(DEX_DIR,referer,path)
+					else
+						puts_maybe "Requested URL is missing a hostname and request['Referer'] was not set. Here, have a 404."
+					end
+				else
+					puts_maybe 'File regex was not a match'
+				end
+			end
+
+			if file_path
 				if File.exist?(file_path)
 					response['Content-Type'] = "#{content_types[ext]}; charset=utf-8"
 					response.body = IO.read(file_path)
@@ -193,8 +223,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				else
 					puts_maybe "File `#{file_path}` doesn’t exist :("
 				end
-			else
-				puts_maybe 'File regex was not a match'
 			end
 
 			puts "404: #{path} not found".console_red
