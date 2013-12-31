@@ -5,13 +5,8 @@ window.dex = new ->
 
 	@utils =
 		ajax: (o, callback) ->
-			data = {}
-			method = 'POST'
-
-			if 'data' in o
-				data = o.data
-			if 'type' in o
-				method = o.type
+			data = o.data if 'data' in o else {}
+			method = o.type if 'type' in o else 'POST'
 
 			xmlhttp = new XMLHttpRequest()
 			xmlhttp.onreadystatechange = () ->

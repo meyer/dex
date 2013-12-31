@@ -2,3 +2,6 @@
 # excludeInBrowser = "{.build,node_modules,*.esproj}"
 exclude = "{$exclude,build,*.esproj, *.psd,*.zip}"
 include = "{$include,.ruby-version}"
+
+[source.ruby]
+softTabs = false
