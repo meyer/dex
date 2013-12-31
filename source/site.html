@@ -2,72 +2,52 @@
 <html>
 	<head>
 		<title>Dexfiles</title>
-		<link rel="stylesheet" href="/site.css">
-		<script src="/site.js"></script>
+		<link rel="stylesheet" href="/dexfiles.org/ext/dex.css">
+		<script src="/dexfiles.org/ext/dex.js"></script>
 	</head>
 	<body>
-		<h1>Dexfiles on <%= url %></h1>
 		<ul>
-
-			<li>
-				<h2>Enabled Site Files</h2>
+<% if !dex_modules['enabled']['site'].empty? or !dex_modules['disabled']['site'].empty? %>
+			<li class="site-modules">
+				<h2>Site-specific Modules<!--<%= url %>--></h2>
 				<ul>
-<% if !dex_modules['enabled']['site'].empty? %>
 <% for m in dex_modules['enabled']['site'] %>
 					<li>
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
 <% end %>
-<% else %>
-					<li class="empty">No site dexfiles :(</li>
-<% end %>
-				</ul>
-			</li>
-
-			<li>
-				<h2>Disabled Site Files</h2>
-				<ul>
-<% if !dex_modules['disabled']['site'].empty? %>
 <% for m in dex_modules['disabled']['site'] %>
-					<li>
+					<li class="disabled">
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
 <% end %>
-<% else %>
-					<li class="empty">No disabled dexfiles :(</li>
-<% end %>
 				</ul>
 			</li>
+<% else %>
+			<li class="empty site-modules"><h2>No site-specific modules for <%= url %></h2></li>
+<% end %>
 
+
+<% if !dex_modules['enabled']['global'].empty? or !dex_modules['disabled']['global'].empty? %>
 			<li>
-				<h2>Enabled Global Files</h2>
+				<h2>Global Modules</h2>
 				<ul>
-<% if !dex_modules['enabled']['global'].empty? %>
 <% for m in dex_modules['enabled']['global'] %>
 					<li>
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
 <% end %>
-<% else %>
-					<li class="empty">No global dexfiles :(</li>
-<% end %>
-				</ul>
-			</li>
-
-			<li>
-				<h2>Disabled Global Files</h2>
-				<ul>
-<% if !dex_modules['disabled']['global'].empty? %>
 <% for m in dex_modules['disabled']['global'] %>
-					<li>
+					<li class="disabled">
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
 <% end %>
-<% else %>
-					<li class="empty">No disabled dexfiles :(</li>
-<% end %>
 				</ul>
 			</li>
+<% else %>
+			<li class="empty"><h2>No global modules</h2></li>
+<% end %>
+
 		</ul>
 	</body>
 </html>

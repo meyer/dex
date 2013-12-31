@@ -61,11 +61,24 @@ def accio_modules(hostname=false)
 		},
 		'disabled' => {
 			'global' => Dir.glob("global/*/").map {|s| s[0...-1]}
-		}
+		},
+		'all' => {
+			'global' => [],
+			'site' => []
+		},
+		'config' => {}
 	}
 
 	if hostname
-		dex_modules['disabled']['site'] = Dir.glob("{utilities,#{hostname}}/*/").map {|s| s[0...-1]}
+		a = hostname.split('.')
+		hostnames = []
+
+		until a.empty?
+			hostnames.push a.join('.')
+			a.shift
+		end
+
+		dex_modules['disabled']['site'] = Dir.glob("{utilities,#{hostnames.join(',')}}/*/").map {|s| s[0...-1]}
 		dex_modules['enabled']['site'] = []
 	end
 
@@ -98,8 +111,10 @@ def accio_modules(hostname=false)
 				# `global` module cannot contain utilities
 				if !mod.include?('/')
 					modPath = "#{url}/#{mod}"
-				elsif mod.match(/^utilities\//) and url != 'global'
-					modPath = mod
+				else
+					unless mod.match(/^utilities\//) and url == 'global'
+						modPath = mod
+					end
 				end
 
 				# If `modPath` isn’t in `available`, it doesn’t exist.
@@ -110,9 +125,11 @@ def accio_modules(hostname=false)
 					if hostname and url == hostname
 						dex_modules['enabled']['site'].push modPath
 						dex_modules['disabled']['site'].delete modPath
+						dex_modules['all']['site'].push modPath
 					elsif url == 'global'
 						dex_modules['enabled']['global'].push modPath
 						dex_modules['disabled']['global'].delete modPath
+						dex_modules['all']['global'].push modPath
 					end
 					false # don’t delete item from modList
 				else
@@ -141,7 +158,7 @@ def accio_modules(hostname=false)
 		puts_maybe "  • #{dex_modules['rejected'].length} rejected key#{if dex_modules['rejected'].length != 1 then 's' end} will be deleted next time config is modified.".console_red
 	end
 
-	dex_modules['all'] = config
+	dex_modules['config'] = config
 
 	dex_modules
 
@@ -194,14 +211,14 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 			# Probably don’t need all these capture groups.
 			# TODO: Decent filename whitelist regex
-			/^(?<url>[\w\-_]+\.[\w\-_\.]+)\/(?<mod>[\w\s\-]+)\/(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg)$/ =~ path
+			/^(?<url>[\w\-_]+\.[\w\-_\.]+)\/(?<mod>[\w\s\-]+)\/(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg|js|css)$/ =~ path
 
 			if Regexp.last_match
 				file_path = File.join(DEX_DIR,path)
 			else
 
 				# Handy shortcut: omit the hostname. Probably going to make this standard behaviour.
-				/^(?<mod>[\w\s\-]+)\/(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg)$/ =~ path
+				/^(?<mod>[\w\s\-]+)\/(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg|js|css)$/ =~ path
 
 				if Regexp.last_match
 					if referer
@@ -287,79 +304,74 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 					module_folder, module_name = folder.split('/',2)
 					module_scope = 'site'
+					module_scope = 'global' if module_folder == 'global'
 
-					if ['global','utilities',url].include? module_folder
+					if module_folder == 'utilities'
+						module_folder = url
+						module_name = folder
+					end
 
-						module_scope = 'global' if module_folder == 'global'
+					dex_modules['config'][module_folder] ||= []
+					site_config = dex_modules['config'][module_folder]
 
-						if module_folder == 'utilities'
-							module_folder = url
-							module_name = folder
-						end
+					# The dirty work
+					if dex_modules['enabled'][module_scope].delete(folder)
+						dex_modules['disabled'][module_scope].push(folder).sort!
 
-						dex_modules['all'][module_folder] ||= []
-						site_config = dex_modules['all'][module_folder]
+						if site_config.include?(module_name)
+							puts_maybe "  > Folder `#{folder}` is an active #{module_scope} module. Deactivate it!"
+							site_config.delete(module_name)
 
-						# The dirty work
-						if dex_modules['enabled'][module_scope].delete(folder)
-							dex_modules['disabled'][module_scope].push(folder).sort!
-
-							if site_config.include?(module_name)
-								puts_maybe "  > Folder `#{folder}` is an active #{module_scope} module. Deactivate it!"
-								site_config.delete(module_name)
-
-								if site_config.length == 0
-									puts_maybe "Module key `#{url}` is empty. Deleting!"
-									dex_modules['all'].delete url
-								end
-							else
-								puts_maybe "  > Folder `#{folder}` is already an active #{module_scope} module.", site_config.to_yaml
+							if site_config.length == 0
+								puts_maybe "Module key `#{url}` is empty. Deleting!"
+								dex_modules['config'].delete url
 							end
 						else
-							dex_modules['enabled'][module_scope].push(folder).sort!
-							dex_modules['disabled'][module_scope].delete folder
-
-							unless site_config.include?(module_name)
-								puts_maybe "  > Folder `#{folder}` is an inactive #{module_scope} module. Activate it!"
-								site_config.push module_name
-							else
-								puts_maybe "  > Folder `#{folder}` is already an inactive #{module_scope} module. Carry on…", site_config.to_yaml
-							end
+							puts_maybe "  > Folder `#{folder}` is already an active #{module_scope} module.", site_config.to_yaml
 						end
+					else
+						dex_modules['enabled'][module_scope].push(folder).sort!
+						dex_modules['disabled'][module_scope].delete folder
 
-						File.open('enabled.yaml','r+') do |file|
-							puts_maybe "  > Save modified config file…"
+						unless site_config.include?(module_name)
+							puts_maybe "  > Folder `#{folder}` is an inactive #{module_scope} module. Activate it!"
+							site_config.push module_name
+						else
+							puts_maybe "  > Folder `#{folder}` is already an inactive #{module_scope} module. Carry on…", site_config.to_yaml
+						end
+					end
 
-							# Ghetto alphabetical YAML::dump.
-							file_contents =  "# Generated by Dex #{DEX_VERSION}\n"
-							file_contents << "# #{Time.now.asctime}\n"
-							file_contents << "---"
+					File.open('enabled.yaml','r+') do |file|
+						puts_maybe "  > Save modified config file…"
 
-							keys = dex_modules['all'].keys.sort
+						# Ghetto alphabetical YAML::dump.
+						file_contents =  "# Generated by Dex #{DEX_VERSION}\n"
+						file_contents << "# #{Time.now.asctime}\n"
+						file_contents << "---"
 
-							# `global` first
-							keys.unshift 'global' if keys.delete 'global'
+						keys = dex_modules['config'].keys.sort
 
-							keys.each do |k|
-								if dex_modules['all'][k].length > 0
-									file_contents << "\n#{k}:"
+						# `global` first
+						keys.unshift 'global' if keys.delete 'global'
 
-									dex_modules['all'][k].sort.each do |v|
-										file_contents << "\n- #{yaml_escape(v)}"
-									end
+						keys.each do |k|
+							if dex_modules['config'][k].length > 0
+								file_contents << "\n#{k}:"
+
+								dex_modules['config'][k].sort.each do |v|
+									file_contents << "\n- #{yaml_escape(v)}"
 								end
 							end
-
-							# file_contents << "\n...\n"
-
-							# TODO: Wrap this in begin/rescue
-							# TODO: Figure out how to use begin/rescue
-							file.rewind()
-							file.write file_contents
-							file.flush
-							file.truncate(file.pos)
 						end
 
+						# file_contents << "\n...\n"
+
+						# TODO: Wrap this in begin/rescue
+						# TODO: Figure out how to use begin/rescue
+						file.rewind()
+						file.write file_contents
+						file.flush
+						file.truncate(file.pos)
 					end
 
 				else

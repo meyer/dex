@@ -1,8 +1,12 @@
 hostname = window.location.host.replace /^www\./, ''
 address = '<%= DEX_URL %>/'
 
-# no iframes
-return unless window.self is window.top
+console.log "DIMENSIONS -- W:#{window.self.innerWidth+1}, H: #{window.self.innerHeight+1}"
+
+if not window.self is window.top
+	console.log "IFRAME: #{(window.self.innerWidth+1) * (window.innerHeight+1)}"
+else
+	console.log "NOT IFRAME: #{(window.self.innerWidth+1) * (window.innerHeight+1)}"
 
 # no localhost
 return if ~hostname.indexOf 'localhost'
@@ -21,9 +25,6 @@ js.src = address + hostname + '.js'
 css = document.createElement 'link'
 css.rel = 'stylesheet'
 css.href = address + hostname + '.css'
-
-# dex.defer = true
-# js.defer = true
 
 asapLoaded = false
 bodyLoaded = false
