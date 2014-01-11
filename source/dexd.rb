@@ -54,7 +54,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			config = YAML::load_file('enabled.yaml')
 			# Normalise config file
 			config.values.map! do |arr|
-				arr.map! {|v| v.to_s}.keep_if{|d| File.directory? d}
+				arr.map! {|v| v.to_s}.keep_if{|d| File.directory? d}.sort
 			end
 		rescue
 			abort "Something went wrong while loading enabled.yaml"
@@ -132,14 +132,14 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 				if toggle and available_modules.include?(toggle)
 					if global_available.include?(toggle)
-						global_enabled.push(toggle) unless global_enabled.delete(toggle)
+						global_enabled.push(toggle).sort! unless global_enabled.delete(toggle)
 						if global_enabled.empty?
 							config.delete("global")
 						else
 							config["global"] = global_enabled
 						end
 					else # This looks familiar
-						site_enabled.push(toggle) unless site_enabled.delete(toggle)
+						site_enabled.push(toggle).sort! unless site_enabled.delete(toggle)
 						if site_enabled.empty?
 							config.delete(url)
 						else
