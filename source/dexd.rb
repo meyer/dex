@@ -144,7 +144,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					body_prefix << enabled_modules.map {|e| "[+] #{e}"}.join("\n") + "\n\n"
 					body_prefix << "Enabled Files:\n"
 
-					Dir.glob("{#{enabled_modules.join(",")}}/*.#{ext}").each do |file|
+					Dir.glob("{#{url},#{enabled_modules.join(",")}}/*.#{ext}").each do |file|
 						body_prefix << "[+] #{file}\n"
 						body << "\n/* @start #{file} */\n#{IO.read(file)}\n/* @end #{file} */\n\n"
 					end
