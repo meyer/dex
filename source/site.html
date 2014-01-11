@@ -7,17 +7,12 @@
 	</head>
 	<body>
 		<ul>
-<% if !dex_modules['enabled']['site'].empty? or !dex_modules['disabled']['site'].empty? %>
+<% unless site_available.empty? %>
 			<li class="site-modules">
 				<h2>Site-specific Modules<!--<%= url %>--></h2>
 				<ul>
-<% for m in dex_modules['enabled']['site'] %>
-					<li>
-						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
-					</li>
-<% end %>
-<% for m in dex_modules['disabled']['site'] %>
-					<li class="disabled">
+<% for m in site_available %>
+					<li<%= " class='disabled'" unless site_enabled.include? m %>>
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
 <% end %>
@@ -28,17 +23,12 @@
 <% end %>
 
 
-<% if !dex_modules['enabled']['global'].empty? or !dex_modules['disabled']['global'].empty? %>
+<% unless global_available.empty? %>
 			<li>
 				<h2>Global Modules</h2>
 				<ul>
-<% for m in dex_modules['enabled']['global'] %>
-					<li>
-						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
-					</li>
-<% end %>
-<% for m in dex_modules['disabled']['global'] %>
-					<li class="disabled">
+<% for m in global_available %>
+					<li<%= " class='disabled'" unless global_enabled.include? m %>>
 						<a href="/<%= url %>.html?toggle=<%= m %>"><%= m %></a>
 					</li>
 <% end %>
