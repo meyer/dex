@@ -13,12 +13,11 @@
 				<ul>
 <% for m in site_available %>
 					<li<%= " class='disabled'" unless site_enabled.include? m %>>
-						<a href="/<%= url %>.html?toggle=<%= m %>"><%= titles[m] %></a>
-<%
-=begin %>
-						<strong><%= titles[m] %></strong><% if authors[m] %> by <strong><%= authors[m] %></strong><% end %>
-<%
-=end %>
+						<a href="/<%= url %>.html?toggle=<%= m %>"><%= metadata[m]["Title"] %></a>
+<!--
+						<strong><%= metadata[m]["Title"] %></strong><% if metadata[m]["Author"] %> by <strong><%= metadata[m]["Author"] %></strong><% end %>
+-->
+
 					</li>
 <% end %>
 				</ul>
@@ -34,7 +33,7 @@
 				<ul>
 <% for m in global_available %>
 					<li<%= " class='disabled'" unless global_enabled.include? m %>>
-						<a href="/<%= url %>.html?toggle=<%= m %>"><%= titles[m] %></a>
+						<a href="/<%= url %>.html?toggle=<%= m %>"><%= metadata[m]["Title"] %></a>
 					</li>
 <% end %>
 				</ul>
