@@ -68,7 +68,7 @@ def launchd_worked(launch_output)
 		elsif launch_output.include? 'Already loaded'
 			puts '✔ dex daemon is already running'.console_green
 		elsif launch_output.include? 'Error unloading'
-			puts '✔ dex daemon is already stopped'.console_green
+			puts '✗ dex daemon could not be stopped. Is it running?'.console_red
 		elsif launch_output.include? 'no plist was returned for'
 			puts '✗ launch agent file is blank'
 		else
