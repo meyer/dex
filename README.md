@@ -45,7 +45,7 @@ Dex should be up and running all smooth-like with a few default modules loaded. 
 Dex loads files in the following order:
 
 1. `~/.dex/global/*.js`
-2. `~/.dex/global/*.{css,js}`
+2. `~/.dex/global/*/*.{css,js}`
 3. `~/.dex/example.com/*.js`
 4. `~/.dex/example.com/*/*.{css,js}`
 
