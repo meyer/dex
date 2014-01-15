@@ -4,18 +4,20 @@ loadURL = (url) ->
 	console.log "URL: #{url}"
 	# TODO: Use official method to detect invalid Chrome/Safari pages
 
-	# ignored = [/chrome:\/\//,/\/\/localhost/,/\/\/127.0.0.1/, /\*.dev/]
-	# for str in ignored
-	# 	if url.match(str)
-	# 		return
+	ignored = [
+		"chrome://"
+		"//localhost"
+		"//127.0.0.1"
+		".dev"
+	]
 
-	return if ~url.indexOf('chrome://') || ~url.indexOf('//localhost') || ~url.indexOf('//127.0.0.1') || ~url.indexOf('.dev')
+	for str in ignored
+		if ~url.indexOf(str)
+			document.body.innerHTML = "<!-- Invalid page: '#{str}' -->"
+			return
 
 	# Strip down to hostname
-	url = url.split('://')[1].split('/')[0]
-
-	# Remove www
-	url = url.replace /^www\./, ''
+	url = url.split('://')[1].split('/')[0].replace(/^ww[w0-9]\./, '')
 
 	dexURL = "https://localhost:3131/#{url}.html"
 	document.body.innerHTML = "<iframe src='#{dexURL}'></iframe>"
