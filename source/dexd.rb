@@ -36,6 +36,21 @@ class String
 	def console_underline; colorize(self, "\e[4m"); end
 	def colorize(text, color_code)  "#{color_code}#{text}\e[0m" end
 
+=begin
+	# eww
+	def markdown!
+		# rgx = /([*_])(\1?)([^*_\s].*?[^*_\s])\2\1/ # Match bold and italic
+		rgx = /\s([*_])([^*_\s].*?[^*_\s])\1\s/ # TODO: Make this not suck.
+		insert(0, " ") << " " # gross
+		while self =~ rgx
+			# sub!(rgx, (($~[2].empty? ? "<i>%s</i>" : "<b>%s</b>") % $~[3]))
+			# this works because =~ sets $~. gross.
+			sub!(rgx, " <em>#{$~[2]}</em> ")
+		end
+		self[1...-1]
+	end
+=end
+
 	def titleize
 		split(/(\W)/).map(&:capitalize).join
 	end
