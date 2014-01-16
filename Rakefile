@@ -202,7 +202,7 @@ namespace :daemon do
 	desc "Build dex daemon to #{SERVER_RELEASE_DIR}"
 	task :build do
 		puts "Building dex daemon to #{SERVER_RELEASE_DIR}".console_underline
-		copy_file(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
+		ext_copy_file(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
 		puts
 	end
 
@@ -340,10 +340,10 @@ namespace :daemon do
 
 	task :rebuild_files do
 		puts "✔ Built launch agent source file"
-		copy_file(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
+		ext_copy_file(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
 
 		puts "✔ Built dex daemon source file"
-		copy_file(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
+		ext_copy_file(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
 	end
 
 	task :no_root do
