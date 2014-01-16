@@ -31,8 +31,4 @@ window.dex = new ->
 
 	@
 
-window.DexConfig = (getters) ->
-	_cache = {}
-	conf = {}
-
 return
