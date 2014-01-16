@@ -229,35 +229,22 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 	end
 end
 
-ssl_cert = <<-ssl_cert
-<%= File.read File.join(SERVER_SOURCE_DIR, "#{DEX_HOSTNAME}.crt") %>
-ssl_cert
-
-ssl_key = <<-ssl_key
-<%= File.read File.join(SERVER_SOURCE_DIR, "#{DEX_HOSTNAME}.key") %>
-ssl_key
-
-$site_template = <<-site_template
-<%= File.read File.join(SERVER_SOURCE_DIR, "site.html") %>
-site_template
-
-$site_css = <<-site_css
-<%= File.read File.join(EXT_SOURCE_DIR, "popover.css") %>
-site_css
+ssl_info = DATA.read
+ssl_cert = ssl_info.scan(/(-----BEGIN CERTIFICATE-----.+?-----END CERTIFICATE-----)/m)[0][0]
+ssl_key = ssl_info.scan(/(-----BEGIN RSA PRIVATE KEY-----.+?-----END RSA PRIVATE KEY-----)/m)[0][0]
 
 server_options = {
 	:Host => DEX_HOSTNAME,
 	:BindAddress => "127.0.0.1",
 	:Port => DEX_PORT,
+	:Logger => WEBrick::Log.new("/dev/null"),
 	:AccessLog => [],
 	:SSLEnable => true,
 	:SSLVerifyClient => OpenSSL::SSL::VERIFY_NONE,
 	:SSLPrivateKey => OpenSSL::PKey::RSA.new(ssl_key),
 	:SSLCertificate => OpenSSL::X509::Certificate.new(ssl_cert),
-	:SSLCertName => [["CN", WEBrick::Utils::getservername]],
+	:SSLCertName => [["CN", WEBrick::Utils::getservername]]
 }
-
-server_options[:Logger] = WEBrick::Log.new("/dev/null")
 
 server = WEBrick::HTTPServer.new(server_options)
 server.mount("/", DexServer)
@@ -267,3 +254,5 @@ trap "TERM" do server.shutdown end
 
 puts "dexd #{DEX_VERSION} at your service…".console_green
 server.start
+__END__
+<%= File.read File.join(SERVER_SOURCE_DIR, "#{DEX_HOSTNAME}.pem") %>
