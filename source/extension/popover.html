@@ -1,28 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" href="popover.css">
-<style type="text/css" media="screen">
-*{
-	margin: 0;
-	padding: 0;
-}
-
-body{
-	height: 400px;
-	width: 300px;
-}
-
-iframe{
-	border: none;
-	height: 100%;
-	width: 100%;
-}
-</style>
-</head>
-
-<body>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="popover.css">
+	<script src="lodash.min.js"></script>
 	<script src="popover.js"></script>
-</body>
 
+	<script id="module-list-tpl" type="text/html">
+<% if(site_available.length > 0) { %>
+	<li class="site-modules">
+		<h2>Site-specific Modules<!--<%= url %>--></h2>
+		<ul>
+<% site_available.forEach(function(m){ %>
+			<li<%= if(~site_enabled.indexOf(m)){ %> class='disabled'<% } %>>
+				<a href="#" data-module="<%= m %>"><%= metadata[m]["Title"] %></a>
+<!--
+				<strong><%= metadata[m]["Title"] %></strong><% if metadata[m]["Author"] %> by <strong><%= metadata[m]["Author"] %></strong><% end %>
+-->
+			</li>
+<% }); %>
+		</ul>
+	</li>
+<% } else { %>
+	<li class="empty site-modules"><h2>No site-specific modules for <%= url %></h2></li>
+<% } %>
+
+
+<% if(global_available.length > 0){ %>
+	<li>
+		<h2>Global Modules</h2>
+		<ul>
+<% global_available.forEach(function(m){ %>
+			<li<%= " class='disabled'" unless global_enabled.include? m %>>
+				<a href="/<%= url %>.html?toggle=<%= m %>"><%= metadata[m]["Title"] %></a>
+			</li>
+<% }) %>
+		</ul>
+	</li>
+<% } else { %>
+	<li class="empty"><h2>No global modules</h2></li>
+<% } %>
+
+	</script>
+</head>
+<body>
+	<ul id="site-modules"></ul>
+	<div class="loading">Loading modules&hellip;</div>
+</body>
 </html>

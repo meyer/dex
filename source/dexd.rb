@@ -1,9 +1,10 @@
 #!/usr/bin/env ruby
 # encoding: utf-8
 
+require "cgi"
 require "erb"
 require "uri"
-require "cgi"
+require "json"
 require "yaml"
 require "webrick"
 require "webrick/https"
@@ -35,25 +36,7 @@ class String
 	def console_bold; colorize(self, "\e[1m"); end
 	def console_underline; colorize(self, "\e[4m"); end
 	def colorize(text, color_code)  "#{color_code}#{text}\e[0m" end
-
-=begin
-	# eww
-	def markdown!
-		# rgx = /([*_])(\1?)([^*_\s].*?[^*_\s])\2\1/ # Match bold and italic
-		rgx = /\s([*_])([^*_\s].*?[^*_\s])\1\s/ # TODO: Make this not suck.
-		insert(0, " ") << " " # gross
-		while self =~ rgx
-			# sub!(rgx, (($~[2].empty? ? "<i>%s</i>" : "<b>%s</b>") % $~[3]))
-			# this works because =~ sets $~. gross.
-			sub!(rgx, " <em>#{$~[2]}</em> ")
-		end
-		self[1...-1]
-	end
-=end
-
-	def titleize
-		split(/(\W)/).map(&:capitalize).join
-	end
+	def titleize; split(/(\W)/).map(&:capitalize).join; end
 end
 
 # Allow regexes to be concatenated
@@ -80,6 +63,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			"css"  => "text/css; charset=utf-8",
 			"html" => "text/html; charset=utf-8",
 			"js"   => "application/javascript; charset=utf-8",
+			"json"   => "application/javascript; charset=utf-8",
 			"svg"  => "image/svg+xml; charset=utf-8",
 			"png"  => "image/png",
 			"edit" => "text/plain"
@@ -97,7 +81,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			response.body = config.to_json
 			return
 
-		# Take site-specific action
+		# Site-specific actions
 		# /url.com.{css,js,html,json,edit}
 		elsif (rgx["url"] + rgx["ext"]).match request.path
 			url, ext = $~.captures
@@ -107,18 +91,18 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			h = url.split(".")
 			hostnames = h.each_with_index.map {|v,k| h[k..h.length].join "."}[0...-1]
 
-			global_available = Dir.glob("global/*/").map {|s| s[0...-1]}
-			global_enabled = global_available & (config["global"] || [])
+			available = {}
+			enabled = {}
 
-			# Get all available site modules
-			site_available = Dir.glob("{utilities,#{hostnames.join(",")}}/*/").map {|s| s[0...-1]}
-			site_enabled = site_available & (config[url] || [])
+			available["global"] = Dir.glob("global/*/").map {|s| s[0...-1]}
+			available["site"] = Dir.glob("{utilities,#{hostnames.join(",")}}/*/").map {|s| s[0...-1]}
+			available["all"] = available["global"] | available["site"]
 
-			available_modules = global_available | site_available
-			enabled_modules = global_enabled | site_enabled
+			enabled["global"] = available["global"] & (config["global"] || [])
+			enabled["site"] = available["site"] & (config[url] || [])
+			enabled["all"] = enabled["global"] | enabled["site"]
 
 			case ext
-			when "html"
 
 			# Open module folder in Finder
 			# TODO: Improve, allow opening files as well: /edit/site.com/mod/file.ext
@@ -127,6 +111,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				response.body = "Opening #{DEX_DIR}#{url}/ in Finder... Done!"
 				return
 
+			when "json"
 
 				metadata = {}
 
@@ -136,7 +121,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					metadata[k] = {
 						"Title" => k.rpartition("/")[2].titleize,
 						"Author" => nil,
-						"Description" => "No description provided."
+						"Description" => "No description provided.",
+						"URL" => nil
 					}
 				end
 
@@ -150,21 +136,21 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 				toggle = request.query["toggle"].to_s
 
-				if toggle and available_modules.include?(toggle)
-					if global_available.include?(toggle)
-						global_enabled.push(toggle).sort! if !global_enabled.delete(toggle)
-						if global_enabled.empty?
-							config.delete("global")
-						else
-							config["global"] = global_enabled
-						end
-					else # This looks familiar
-						site_enabled.push(toggle).sort! unless site_enabled.delete(toggle)
-						if site_enabled.empty?
-							config.delete(url)
-						else
-							config[url] = site_enabled
-						end
+				if toggle and available["all"].include?(toggle)
+					response["Access-Control-Allow-Origin"] = "*"
+
+					scope = available["global"].include?(toggle) ? "global" : "site"
+
+					action = "disabled"
+					unless enabled[scope].delete(toggle)
+						enabled[scope].push(toggle).sort!
+						action = "enabled"
+					end
+
+					if enabled[scope].empty?
+						config.delete(scope)
+					else
+						config[scope] = enabled[scope]
 					end
 
 					# Write the changes
@@ -175,19 +161,29 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 #{YAML::dump config}
 						file_contents
 					end
+
+					response.body = [action, toggle].to_json
+					return
 				end
 
-				response.body = ERB.new($site_template).result(binding)
+				response.body = {
+					"metadata" => metadata,
+					"site_available" => available["site"].map!{|v| CGI::escapeHTML(v.to_s)},
+					"site_enabled" => enabled["site"].map!{|v| CGI::escapeHTML(v.to_s)},
+					"global_available" => available["global"].map!{|v| CGI::escapeHTML(v.to_s)},
+					"global_enabled" => enabled["global"].map!{|v| CGI::escapeHTML(v.to_s)}
+				}.to_json
+
 			when "css", "js"
 				body_prefix = ["/* Dex #{DEX_VERSION} at your service."]
 				body = []
 
-				unless enabled_modules.empty?
+				unless enabled["all"].empty?
 					body_prefix << "\nEnabled Modules:"
-					body_prefix.push *enabled_modules.map {|e| "[+] #{e}"}
+					body_prefix.push *enabled["all"].map {|e| "[+] #{e}"}
 					body_prefix << "\nEnabled Files:"
 
-					load_me = Dir.glob("{#{enabled_modules.join(",")}}/*.#{ext}")
+					load_me = Dir.glob("{#{enabled["all"].join(",")}}/*.#{ext}")
 					load_me.unshift *Dir.glob("{global,#{url}}/*.js") if ext == "js"
 
 					load_me.each do |file|
@@ -196,7 +192,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 /*# sourceURL=#{file} */
 #{IO.read(file)}
-/* /end #{file} */
+/* end #{file} */
 
 						asset_file
 					end
@@ -249,8 +245,7 @@ server_options = {
 server = WEBrick::HTTPServer.new(server_options)
 server.mount("/", DexServer)
 
-trap "INT" do server.shutdown end
-trap "TERM" do server.shutdown end
+%w(INT TERM).each {|s| trap(s) { server.shutdown }}
 
 puts "dexd #{DEX_VERSION} at your service…".console_green
 server.start
