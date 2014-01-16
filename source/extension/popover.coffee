@@ -13,7 +13,7 @@ loadURL = (url, cssURL) ->
 
 	for str in ignored
 		if ~url.indexOf(str)
-			document.body.innerHTML = "<!-- Invalid page: '#{str}' -->"
+			document.body.innerHTML = "<h1>Invalid page: matches <code>#{str}</code></h1>"
 			return
 
 	# Strip down to hostname
