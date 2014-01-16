@@ -1,15 +1,15 @@
 selectedID = -1
-currentPageURL = ''
+currentPageURL = ""
 cachedValue = 0
 
 getHostnameFromURL = (url) ->
-	url = url.split('//')[1] if ~url.indexOf('//')
-	url = url.split('/')[0]
-	url = url.replace /^www\./, ''
+	url = url.split("//")[1] if ~url.indexOf("//")
+	url = url.split("/")[0]
+	url = url.replace /^www\./, ""
 	return url
 
 isForbiddenURL = (url) ->
-	!url || ~url.indexOf('//localhost') || ~url.indexOf('//127.0.0.1') || ~url.indexOf('chrome://') || ~url.indexOf('chrome-extension://') || ~url.indexOf('.dev')
+	!url || ~url.indexOf("//localhost") || ~url.indexOf("//127.0.0.1") || ~url.indexOf("chrome://") || ~url.indexOf("chrome-extension://") || ~url.indexOf(".dev")
 
 updateBadgeCount = (badgeText) ->
 	if window.chrome
@@ -17,13 +17,13 @@ updateBadgeCount = (badgeText) ->
 			tab = tabs[0]
 			currentPageURL = tab.url
 
-			console.log 'selectedID == tab.id' if selectedID == tab.id
+			console.log "selectedID == tab.id" if selectedID == tab.id
 			selectedID = tab.id
 
 			if isForbiddenURL tab.url
 				console.log "Disable tab: #{tab.url}"
 				chrome.browserAction.disable tab.id
-				badgeText = ''
+				badgeText = ""
 			else
 				console.log "Enable tab: #{tab.url}"
 				chrome.browserAction.enable tab.id
@@ -41,7 +41,7 @@ updateBadgeCount = (badgeText) ->
 			item.disabled = isForbiddenURL item.browserWindow.activeTab.url
 			badgeText = 0
 			badgeText = item.browserWindow.activeTab.url.length if !item.disabled
-			item.badge = badgeText if 'badge' of item
+			item.badge = badgeText if "badge" of item
 
 	console.log "Updated badge text to #{badgeText}"
 	return
