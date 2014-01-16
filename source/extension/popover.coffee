@@ -1,6 +1,4 @@
-cssURL = ''
-
-loadURL = (url, cssURL) ->
+loadJSON = (url) ->
 	console.log "URL: #{url}"
 	# TODO: Use official method to detect invalid Chrome/Safari pages
 
@@ -18,17 +16,39 @@ loadURL = (url, cssURL) ->
 
 	# Strip down to hostname
 	url = url.split("://")[1].split("/")[0].replace(/^ww[w0-9]\./, "")
+	jsonURL = "https://localhost:3131/#{url}.json"
 
-	dexURL = "https://localhost:3131/#{url}.html?css=#{cssURL}"
-	document.body.innerHTML = "<iframe src='#{dexURL}'></iframe>"
+	moduleList = _.template(
+		document.getElementById("module-list-tpl").innerHTML
+		null
+		variable: "data"
+	)
+
+	xhr = new XMLHttpRequest()
+	xhr.onreadystatechange = () ->
+	if xhr.readyState == 4 && xhr.status == 200
+		document.body.innerHTML = moduleList {
+			modules: JSON.parse(xhr.responseText)
+		}
+		ul = document.getElementById("site-modules")
+
+		ul.addEventListener "click", (e) ->
+			console.log "You clicked on a '#{e.target.tagName}' tag"
+			e.preventDefault()
+
+	xhr.open(method, o.url, true)
+	xhr.send()
+
+link = document.createElement "link"
+link.rel = "stylesheet"
 
 if window.safari
-	cssURL = safari.extension.baseURI + 'popover.css'
-	loadURL safari.application.activeBrowserWindow.activeTab.url, cssURL
+	link.href = safari.extension.baseURI + "popover.css"
+	loadJSON safari.application.activeBrowserWindow.activeTab.url
 
 if window.chrome
-	cssURL = chrome.extension.getURL 'popover.css'
+	link.href = chrome.extension.getURL "popover.css"
 	chrome.tabs.getSelected null, (tab) ->
-		loadURL tab.url, cssURL
+		loadJSON tab.url, cssURL
 
-console.log "CSS URL: #{cssURL}"
+document.head.appendChild link
