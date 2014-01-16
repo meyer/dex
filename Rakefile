@@ -13,7 +13,7 @@ EXT_CONTENT_SCRIPTS = ["main.erb.coffee"]
 
 # safari.extension.baseURI + "filename"
 # chrome.extension.getURL("filename")
-EXT_EXTRA_RESOURCES = ["dex.coffee"]
+EXT_EXTRA_RESOURCES = ["dex.coffee","lodash.min.js"]
 
 EXT_BACKGROUND_PAGE = true
 EXT_POPOVER_MENU = true
