@@ -17,7 +17,7 @@ loadURL = (url, cssURL) ->
 			return
 
 	# Strip down to hostname
-	url = url.split('://')[1].split('/')[0].replace(/^ww[w0-9]\./, '')
+	url = url.split("://")[1].split("/")[0].replace(/^ww[w0-9]\./, "")
 
 	dexURL = "https://localhost:3131/#{url}.html?css=#{cssURL}"
 	document.body.innerHTML = "<iframe src='#{dexURL}'></iframe>"

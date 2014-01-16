@@ -5,8 +5,8 @@ window.dex = new ->
 
 	@utils =
 		ajax: (o, callback) ->
-			data = o.data if 'data' in o else {}
-			method = o.type if 'type' in o else 'POST'
+			data = o.data if "data" in o else {}
+			method = o.type if "type" in o else "POST"
 
 			xmlhttp = new XMLHttpRequest()
 			xmlhttp.onreadystatechange = () ->
@@ -16,7 +16,7 @@ window.dex = new ->
 			xmlhttp.open(method, o.url, true)
 			xmlhttp.send()
 
-	@__defineSetter__ 'config', (configDict) ->
+	@__defineSetter__ "config", (configDict) ->
 		conf = {}
 		for m, fn of configDict
 			do (m, fn) =>
@@ -26,7 +26,7 @@ window.dex = new ->
 				conf.__defineSetter__ m, (s) ->
 					console.log "Config object is read-only, cannot set #{m} to #{s}."
 
-	@__defineGetter__ 'config', ->
+	@__defineGetter__ "config", ->
 		conf
 
 	@

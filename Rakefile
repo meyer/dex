@@ -93,7 +93,10 @@ end
 task :default => "daemon:install"
 task :release => ["extension:build_release", "daemon:build"]
 task :dev => ["extension:build_dev", "daemon:build"]
-task :runserver => ["daemon:stop", :dev] {system "ruby build/dexd.rb --verbose"}
+task :runserver => ["daemon:stop", :dev] do
+	%w(INT TERM).each {|s| trap(s){puts "\ntake care out there \u{1f44b}"; abort}}
+	system "ruby build/dexd.rb --verbose"
+end
 
 namespace :daemon do
 	desc "Install dex daemon"
