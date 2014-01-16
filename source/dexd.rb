@@ -189,9 +189,9 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 						body_prefix << "[+] #{file}"
 						body << <<-asset_file
 
-/* @start #{file} */
+/*# sourceURL=#{file} */
 #{IO.read(file)}
-/* @end #{file} */
+/* /end #{file} */
 
 						asset_file
 					end
