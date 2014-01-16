@@ -30,6 +30,16 @@ EXT_RELEASE_DIR = "./extensions"
 
 TEMP_DIR = "./build"
 
+# Stolen from http://www.ruby-doc.org/core-2.0.0/File.html#method-i-flock
+File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
+	f.flock(File::LOCK_EX)
+	EXT_BUILD_NUMBER = (f.read.to_i + 1)
+	f.rewind
+	f.write EXT_BUILD_NUMBER
+	f.flush
+	f.truncate(f.pos)
+}
+
 # Server Config
 DEX_DIR = File.join(ENV["HOME"], ".dex/")
 DEX_PORT = 3131
