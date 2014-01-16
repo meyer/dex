@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Dexfiles</title><% if request.query["css"] and !request.query["css"].empty? %>
-		<link rel="stylesheet" href="<%= request.query["css"] %>"><% else %>
-		<!-- request.query["css"] was blank --><% end %>
+		<title>Dexfiles</title>
+		<style type="text/css" media="screen">
+<%= $site_css %>
+		</style>
 	</head>
 	<body>
 		<ul>
