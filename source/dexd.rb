@@ -236,6 +236,10 @@ $site_template = <<-site_template
 <%= File.read File.join(SERVER_SOURCE_DIR, "site.html") %>
 site_template
 
+$site_css = <<-site_css
+<%= File.read File.join(EXT_SOURCE_DIR, "popover.css") %>
+site_css
+
 server_options = {
 	:Host => DEX_HOSTNAME,
 	:BindAddress => "127.0.0.1",
