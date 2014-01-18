@@ -1,4 +1,4 @@
-#!/bin/env ruby
+#!/usr/bin/env ruby
 # encoding: utf-8
 
 EXT_NAME = "dex"
@@ -29,6 +29,8 @@ EXT_CERT_DIR = "../certificates"
 EXT_RELEASE_DIR = "./extensions"
 
 TEMP_DIR = "./build"
+
+%w(INT TERM).each {|s| trap(s){puts "\ntake care out there \u{1f44b}"; abort}}
 
 # Stolen from http://www.ruby-doc.org/core-2.0.0/File.html#method-i-flock
 File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
@@ -78,7 +80,7 @@ def launchd_worked(launch_output)
 		elsif launch_output.include? "Already loaded"
 			puts "✔ dex daemon is already running".console_green
 		elsif launch_output.include? "Error unloading"
-			puts "✗ dex daemon could not be stopped. Is it running?".console_red
+			puts "✗ dex daemon could not be stopped.".console_red
 		elsif launch_output.include? "no plist was returned for"
 			puts "✗ launch agent file is blank"
 		else
@@ -90,12 +92,13 @@ def launchd_worked(launch_output)
 	return true
 end
 
-task :default => "daemon:install"
+task :default => ["daemon:install"]
 task :release => ["extension:build_release", "daemon:build"]
 task :dev => ["extension:build_dev", "daemon:build"]
+
+desc "Compile and run the latest daemon"
 task :runserver => ["daemon:stop", :dev] do
-	%w(INT TERM).each {|s| trap(s){puts "\ntake care out there \u{1f44b}"; abort}}
-	system "ruby build/dexd.rb --verbose"
+	system "ruby build/dexd.rb --verbose 2>/dev/null"
 end
 
 namespace :daemon do
@@ -313,7 +316,11 @@ namespace :daemon do
 	desc "Stop dex daemon"
 	task :stop => [:no_root] do
 		if launchd_worked(`launchctl unload -w #{LAUNCHAGENT_DEST_FILE} 2>&1`)
-			puts "✔ Stopped dex daemon"
+			if dex_running()
+				puts "✗ Could not stop dex daemon".console_red
+			else
+				puts "✔ Stopped dex daemon"
+			end
 		end
 	end
 
