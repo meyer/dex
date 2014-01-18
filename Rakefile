@@ -9,7 +9,7 @@ EXT_DESC = IO.read("./source/extension/description.txt")
 EXT_URL = "https://github.com/meyer/dex"
 EXT_AUTHOR = "Mike Meyer"
 EXT_BUNDLE_ID = "fm.meyer.dex"
-EXT_CONTENT_SCRIPTS = ["main.erb.coffee"]
+EXT_CONTENT_SCRIPTS = ["main.coffee"]
 
 # safari.extension.baseURI + "filename"
 # chrome.extension.getURL("filename")

@@ -3,5 +3,5 @@
 exclude = "{$exclude,build,*.esproj, *.psd,*.zip}"
 include = "{$include,.ruby-version}"
 
-[source.ruby]
+[source.ruby, source.coffee, text.html]
 softTabs = false
