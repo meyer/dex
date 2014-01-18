@@ -93,4 +93,25 @@ if window.chrome
 	# Fired when different tab is loaded
 	chrome.tabs.onActivated.addListener (e, props) ->
 		console.log "onActivated: #{e.tabId}"
-		# updateBadgeCount e.tabId
+		updateBadgeCount e.tabId
+
+	# Modify Content-Security-Policy header to allow extension assets
+	chrome.webRequest.onHeadersReceived.addListener ((info) ->
+		response = []
+		for header of info.responseHeaders
+			if info.responseHeaders[header].name is "Content-Security-Policy"
+				v = info.responseHeaders[header].value.replace(/((?:script|default)-src(?: ['"]self['"])?)/g, "$1 <%= DEX_URL %>")
+				console.log "CSP: #{v}"
+				response.push
+					name: info.responseHeaders[header].name
+					value: v
+
+			else
+				response.push info.responseHeaders[header]
+
+		responseHeaders: response
+	),
+
+		# filters
+		urls: ["<all_urls>"]
+	, ["blocking", "responseHeaders"]
