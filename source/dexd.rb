@@ -119,10 +119,12 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					end]
 				end
 
+				# response["Access-Control-Allow-Origin"] = "*"
+				# puts "Request: #{request.to_json}"
+
 				toggle = request.query["toggle"].to_s
 
 				if toggle and available["all"].include?(toggle)
-					response["Access-Control-Allow-Origin"] = "*"
 
 					scope = available["global"].include?(toggle) ? "global" : "site"
 
