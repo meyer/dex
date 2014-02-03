@@ -29,7 +29,7 @@ updateBadgeCount = (badgeText) ->
 				chrome.browserAction.enable tab.id
 
 			chrome.browserAction.setBadgeText
-				"text": badgeText
+				text: "#{badgeText}"
 				tabId: tab.id
 
 	if window.safari
@@ -60,7 +60,6 @@ getBadgeCount = (url) ->
 		xhr.send()
 	else
 
-
 # Events
 if window.safari
 	# Fired when the menubar button is clicked
@@ -69,7 +68,7 @@ if window.safari
 
 	# Fired when new tab/window is focused
 	activateHandler = (e) ->
-		# updateBadgeCount(Math.floor(Math.random()*100))
+		updateBadgeCount(Math.floor(Math.random()*100))
 		console.log "ACTIVATE"
 
 	safari.application.addEventListener "popover", popoverHandler, true
@@ -83,12 +82,12 @@ if window.chrome
 			console.log "New page loaded (#{tabID})"
 		else
 			console.log "HALP (#{tabID})"
-		# updateBadgeCount tabID
+		updateBadgeCount tabID
 
 	# Fired when tab is changed
 	chrome.tabs.onSelectionChanged.addListener (tabID, props) ->
 		console.log "Tab changed from #{selectedID} to #{tabID}."
-		# updateBadgeCount tabID
+		updateBadgeCount tabID
 
 	# Fired when different tab is loaded
 	chrome.tabs.onActivated.addListener (e, props) ->
