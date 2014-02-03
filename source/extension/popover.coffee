@@ -49,6 +49,6 @@ if window.safari
 if window.chrome
 	link.href = chrome.extension.getURL "popover.css"
 	chrome.tabs.getSelected null, (tab) ->
-		loadJSON tab.url, cssURL
+		loadJSON tab.url
 
 document.head.appendChild link
