@@ -1,12 +1,11 @@
-
 window.dex = new ->
 	_cache = {}
 	conf = false
 
 	@utils =
 		ajax: (o, callback) ->
-			data = o.data if "data" in o else {}
-			method = o.type if "type" in o else "POST"
+			data = if "data" in o then o.data else {}
+			method = if "type" in o then o.type else "POST"
 
 			xmlhttp = new XMLHttpRequest()
 			xmlhttp.onreadystatechange = () ->
