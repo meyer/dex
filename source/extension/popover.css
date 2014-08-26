@@ -7,12 +7,12 @@
 }
 
 body{
-/*	height: 400px;*/
+  min-width: 200px;
 }
 
 h2,a{
   font: 16px/140% "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
-  padding: 3px 10px;
+  padding: 4px 12px;
   display: block;
 }
 
@@ -28,6 +28,10 @@ body > ul > li{
   padding-top: 6px;
 }
 
+#site-modules{
+  padding: 4px 0;
+}
+
 .site-modules{
   border-bottom: 1px solid #dedede;
   padding-bottom: 6px;
@@ -41,6 +45,7 @@ iframe{
 
 a{
   text-decoration: none;
+  white-space: nowrap;
   color: #373737;
 }
 

@@ -122,22 +122,37 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				# response["Access-Control-Allow-Origin"] = "*"
 				# puts "Request: #{request.to_json}"
 
-				toggle = request.query["toggle"].to_s
+				toggle = request.query["toggle"].to_s.encode('utf-8')
 
 				if toggle and available["all"].include?(toggle)
 
 					scope = available["global"].include?(toggle) ? "global" : "site"
 
 					action = "disabled"
-					unless enabled[scope].delete(toggle)
+					if enabled[scope].delete(toggle)
+						puts " - `#{toggle}` was in `enabled[#{scope}]` so it was deleted"
+					else
+						puts " - `#{toggle}` was NOT in `enabled[#{scope}]` so it was added"
 						enabled[scope].push(toggle).sort!
 						action = "enabled"
 					end
 
+					# Delete empty
+					puts " - Amending config[#{url}]"
 					if enabled[scope].empty?
-						config.delete(scope)
+						if scope == "site"
+							puts " - `enabled[#{scope}]` is empty and therefore `config[#{url}]` will be deleted"
+							config.delete(url)
+						else
+							puts " - `enabled[#{scope}]` is empty and therefore `config[#{scope}]` will be deleted"
+							config.delete(scope)
+						end
 					else
-						config[scope] = enabled[scope]
+						if scope == "site"
+							config[url] = enabled[scope]
+						else
+							config[scope] = enabled[scope]
+						end
 					end
 
 					# Write the changes
