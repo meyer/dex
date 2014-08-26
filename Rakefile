@@ -73,18 +73,24 @@ def dex_running()
 	return system("curl -k #{DEX_URL} &> /dev/null")
 end
 
+def puts_y(msg) puts "✔ #{msg}".console_green end
+def puts_n(msg) puts "✗ #{msg}".console_red end
+def puts_b(msg) puts "• #{msg}" end
+
 def launchd_worked(launch_output)
 	if launch_output.strip!
 		if launch_output.include? "No such file"
-			puts "✗ dex daemon is not installed".console_red
+			puts_n "dex daemon is not installed"
 		elsif launch_output.include? "Already loaded"
-			puts "✔ dex daemon is already running".console_green
+			puts_y "dex daemon is already running"
 		elsif launch_output.include? "Error unloading"
-			puts "✗ dex daemon could not be stopped.".console_red
+			puts_n "dex daemon could not be stopped."
+		elsif launch_output.include? "Could not find specified service"
+			puts_y "dex daemon is not running"
 		elsif launch_output.include? "no plist was returned for"
-			puts "✗ launch agent file is blank"
+			puts_n "launch agent file is blank"
 		else
-			puts "✗ launchctl error: ".console_red+launch_output.sub("launchctl: ","")
+			puts "launchctl error: ".console_red+launch_output.sub("launchctl: ","")
 			exit 1
 		end
 		return false
@@ -122,34 +128,33 @@ namespace :daemon do
 			puts folder.console_bold.console_underline
 			begin
 				if !File.exists? folder
-					puts "✗ Doesn’t exist.".console_red, ""
-
+					puts_n "Doesn’t exist.", ""
 					print "Create folder and set correct permissions? (y/n): "
 				else
-					puts "✔ Exists".console_green
+					puts_y "Exists"
 				end
 
 				stat = File.stat(folder)
 
 				if !stat.owned?
 					perms_issue += 1
-					puts "✗ Not owned by user".console_red
+					puts_n "Not owned by user"
 				else
-					puts "✔ Owned by user".console_green
+					puts_y "Owned by user"
 				end
 
 				if !stat.writable?
 					perms_issue += 1
-					puts "✗ Not writable".console_red
+					puts_n "Not writable"
 				else
-					puts "✔ Writable".console_green
+					puts_y "Writable"
 				end
 
 				if !stat.executable?
 					perms_issue += 1
-					puts "✗ Not executable".console_red
+					puts_n "Not executable"
 				else
-					puts "✔ Executable".console_green
+					puts_y "Executable"
 				end
 
 				if perms_issue > 1
@@ -162,7 +167,7 @@ namespace :daemon do
 					system "sudo mkdir -p #{folder}"
 					system "sudo chown -R #{ENV["USER"]} #{folder}"
 					chmod 0755, folder
-					puts "✔ Problems fixed".console_green
+					puts_y "Problems fixed"
 				else
 					# Don’t continue
 					puts
@@ -176,14 +181,14 @@ namespace :daemon do
 	task :confirm_install => :no_root do
 		puts "Install #{EXT_DISPLAY_NAME} #{@ext_version}".console_bold.console_underline
 
-		puts "• "+DEX_DAEMON.console_bold+" will be installed in "+DAEMON_DEST_DIR.console_bold+"."
-		puts "• "+"#{EXT_BUNDLE_ID}.plist".console_bold+" will be installed in "+LAUNCHAGENT_DEST_DIR.console_bold+"."
-		puts "• "+DEX_DIR.console_bold+" will be created." if !File.exist? DEX_DIR
+		puts_b DEX_DAEMON.console_bold+" will be installed in "+DAEMON_DEST_DIR.console_bold+"."
+		puts_b "#{EXT_BUNDLE_ID}.plist".console_bold+" will be installed in "+LAUNCHAGENT_DEST_DIR.console_bold+"."
+		puts_b DEX_DIR.console_bold+" will be created." if !File.exist? DEX_DIR
 
 		if File.exist?(LAUNCHAGENT_DEST_FILE) or File.exist?(DAEMON_DEST_FILE)
-			puts "• The existing installation of dex will be removed."
+			puts_b "The existing installation of dex will be removed."
 			if File.exist?(DEX_DIR)
-				puts "• "+DEX_DIR.console_bold+" will not be touched."
+				puts_b DEX_DIR.console_bold+" will not be touched."
 			end
 		end
 
@@ -216,7 +221,7 @@ namespace :daemon do
 		if File.exist?(LAUNCHAGENT_DEST_FILE) or File.exist?(DAEMON_DEST_FILE)
 			rm LAUNCHAGENT_DEST_FILE, :force => true
 			rm DAEMON_DEST_FILE, :force => true
-			puts "✔ Removed existing dex files"
+			puts_y "Removed existing dex files"
 		end
 	end
 
@@ -227,34 +232,36 @@ namespace :daemon do
 		ln_s File.expand_path(DAEMON_SRC_FILE), DAEMON_DEST_FILE
 		# Make sure daemon is executable
 		chmod 0755, DAEMON_SRC_FILE
-		puts "✔ Linked dex daemon"
+		puts_y "Linked dex daemon"
 	end
 
 	task :install_daemon => [:quick_uninstall, :rebuild_files] do
 		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
 		cp DAEMON_SRC_FILE, DAEMON_DEST_FILE, :preserve => true
 		chmod 0755, DAEMON_DEST_FILE
-		puts "✔ Copied dex daemon files"
+		puts_y "Copied dex daemon files"
 	end
 
-	task :finish_link => [:start,:set_daemon_permissions] do
+	task :finish_link => [:start, :set_daemon_permissions] do
 		puts
 		if dex_running()
-			puts "✔ dex daemon link complete!".console_green
+			puts_y  "dex daemon link complete!"
 			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL."
 		else
-			puts "✗ dex daemon link failed".console_red
+			puts_n "dex daemon link failed"
 			puts "Gosh, uh… this is awkward. I wish I knew what to tell you."
 		end
 		puts
 	end
 
-	task :finish_install => [:start,:set_daemon_permissions] do
+	task :finish_install => [:start, :set_daemon_permissions] do
 		if dex_running()
-			puts "", "✔ dex daemon installation complete!".console_green
+			puts
+			puts_y "dex daemon installation complete!"
 			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL.", ""
 		else
-			puts "", "✗ dex daemon installation failed".console_red
+			puts
+			puts_n "dex daemon installation failed"
 			puts "Gosh, uh… this is awkward. I wish I knew what to tell you."
 		end
 	end
@@ -288,26 +295,26 @@ namespace :daemon do
 
 		if File.exist?(LAUNCHAGENT_DEST_FILE)
 			rm LAUNCHAGENT_DEST_FILE
-			puts "✔ Removed "+LAUNCHAGENT_DEST_FILE.console_bold
+			puts_y "Removed "+LAUNCHAGENT_DEST_FILE.console_bold
 		else
-			puts "✗ #{LAUNCHAGENT_DEST_FILE.console_bold} does not exist"
+			puts_n "#{LAUNCHAGENT_DEST_FILE.console_bold} does not exist"
 			++not_installed
 		end
 
 		if File.exist?(DAEMON_DEST_FILE)
 			rm DAEMON_DEST_FILE
-			puts "✔ Removed "+DAEMON_DEST_FILE.console_bold
+			puts_y "Removed "+DAEMON_DEST_FILE.console_bold
 		else
-			puts "✗ #{DAEMON_DEST_FILE.console_bold} does not exist"
+			puts_n "#{DAEMON_DEST_FILE.console_bold} does not exist"
 			++not_installed
 		end
 
 		puts
 
 		if not_installed > 0
-			puts "✔ Successfully cleaned up dex remnants!".console_green
+			puts_y "Successfully cleaned up dex remnants!"
 		else
-			puts "✔ Successfully uninstalled dex daemon!".console_green
+			puts_y "Successfully uninstalled dex daemon!"
 		end
 
 		puts "Your #{DEX_DIR} folder was not touched.",""
@@ -317,9 +324,9 @@ namespace :daemon do
 	task :stop => [:no_root] do
 		if launchd_worked(`launchctl unload -w #{LAUNCHAGENT_DEST_FILE} 2>&1`)
 			if dex_running()
-				puts "✗ Could not stop dex daemon".console_red
+				puts_n "Could not stop dex daemon"
 			else
-				puts "✔ Stopped dex daemon"
+				puts_y "Stopped dex daemon"
 			end
 		end
 	end
@@ -328,7 +335,7 @@ namespace :daemon do
 	task :start => [:no_root, :require_daemon_install] do
 		if launchd_worked(`launchctl load -w #{LAUNCHAGENT_DEST_FILE} 2>&1`)
 			sleep 1
-			puts "✔ Started dex daemon"
+			puts_y "Started dex daemon"
 		end
 	end
 
@@ -340,25 +347,26 @@ namespace :daemon do
 
 	task :require_daemon_install do
 		if !File.exist?(DAEMON_DEST_FILE) and !File.exist?(LAUNCHAGENT_DEST_FILE)
-			puts "✗ Existing dex installation was not found".console_red
+			puts_n "Existing dex installation was not found"
 			exit 1
 		elsif !File.exist?(DAEMON_DEST_FILE) or !File.exist?(LAUNCHAGENT_DEST_FILE)
-			puts "Incomplete dex installation found. Run daemon:install to fix.".console_red
+			puts_n "Incomplete dex installation found. Run daemon:install to fix."
 			exit 1
 		end
 	end
 
 	task :rebuild_files do
-		puts "✔ Built launch agent source file"
+		puts_y "Built launch agent source file"
 		ext_copy_file(LAUNCHAGENT_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
 
-		puts "✔ Built dex daemon source file"
+		puts_y "Built dex daemon source file"
 		ext_copy_file(DAEMON_SRC_FILENAME, SERVER_SOURCE_DIR, SERVER_RELEASE_DIR, with_erb: true)
 	end
 
 	task :no_root do
 		if Process.uid == 0
-			abort "✗ "+Rake.application.top_level_tasks[0].console_bold+" cannot be run as root"
+			puts_n Rake.application.top_level_tasks[0].console_bold+" cannot be run as root"
+			exit 1
 		end
 	end
 end
