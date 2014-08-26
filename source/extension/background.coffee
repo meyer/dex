@@ -98,15 +98,20 @@ if window.chrome
 	chrome.webRequest.onHeadersReceived.addListener ((info) ->
 		response = []
 		for header of info.responseHeaders
-			if info.responseHeaders[header].name is "Content-Security-Policy"
-				v = info.responseHeaders[header].value.replace(/((?:script|default)-src(?: ['"]self['"])?)/g, "$1 <%= DEX_URL %>")
-				console.log "CSP: #{v}"
-				response.push
-					name: info.responseHeaders[header].name
-					value: v
+			headerName = info.responseHeaders[header].name
+			headerVal = info.responseHeaders[header].value
 
-			else
-				response.push info.responseHeaders[header]
+			switch headerName.toLowerCase()
+				when "content-security-policy"
+					v = info.responseHeaders[header].value.replace(/((?:script|default)-src(?: ['"]self['"])?)/g, "$1 <%= DEX_URL %>")
+					console.log "CSP: #{v}"
+					response.push
+						name: info.responseHeaders[header].name
+						value: v
+				when "content-security-policy-report-only"
+					# nah
+				else
+					response.push info.responseHeaders[header]
 
 		responseHeaders: response
 	),
