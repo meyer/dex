@@ -32,15 +32,18 @@ TEMP_DIR = "./build"
 
 %w(INT TERM).each {|s| trap(s){puts "\ntake care out there \u{1f44b}"; abort}}
 
-# Stolen from http://www.ruby-doc.org/core-2.0.0/File.html#method-i-flock
-File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
-	f.flock(File::LOCK_EX)
-	EXT_BUILD_NUMBER = (f.read.to_i + 1)
-	f.rewind
-	f.write EXT_BUILD_NUMBER
-	f.flush
-	f.truncate(f.pos)
-}
+# Don’t increment version number unless a running a task
+unless Rake.application.top_level_tasks == ["default"]
+	# Stolen from http://www.ruby-doc.org/core-2.0.0/File.html#method-i-flock
+	File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
+		f.flock(File::LOCK_EX)
+		EXT_BUILD_NUMBER = (f.read.to_i + 1)
+		f.rewind
+		f.write EXT_BUILD_NUMBER
+		f.flush
+		f.truncate(f.pos)
+	}
+end
 
 # Server Config
 DEX_DIR = File.join(ENV["HOME"], ".dex/")
@@ -73,9 +76,18 @@ def dex_running()
 	return system("curl -k #{DEX_URL} &> /dev/null")
 end
 
-def puts_y(msg) puts "✔ #{msg}".console_green end
-def puts_n(msg) puts "✗ #{msg}".console_red end
-def puts_b(msg) puts "• #{msg}" end
+def a_to_s(*a_or_s)
+	if a_or_s.kind_of?(Array)
+		a_or_s.join("\n")
+	else
+		a_or_s
+	end
+end
+
+
+def puts_y(*msg) puts "✔ #{a_to_s msg}".console_green end
+def puts_n(*msg) puts "✗ #{a_to_s msg}".console_red end
+def puts_b(*msg) puts "• #{a_to_s msg}" end
 
 def launchd_worked(launch_output)
 	if launch_output.strip!
@@ -98,7 +110,11 @@ def launchd_worked(launch_output)
 	return true
 end
 
-task :default => ["daemon:install"]
+# Gross.
+task :default do
+	system "rake -T"
+end
+
 task :release => ["extension:build_release", "daemon:build"]
 task :dev => ["extension:build_dev", "daemon:build"]
 
@@ -127,7 +143,7 @@ namespace :daemon do
 			perms_issue = 0
 			puts folder.console_bold.console_underline
 			begin
-				if !File.exists? folder
+				unless File.exists? folder
 					puts_n "Doesn’t exist.", ""
 					print "Create folder and set correct permissions? (y/n): "
 				else
