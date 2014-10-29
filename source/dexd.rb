@@ -70,7 +70,9 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				arr.map! {|v| v.to_s}.keep_if{|d| File.directory? d}.sort
 			end
 		rescue
-			abort "Something went wrong while loading #{DEX_CONFIG}"
+			puts "Something went wrong while loading #{DEX_CONFIG}"
+			response.body "x___x"
+			return
 		end
 
 		content_types = {
@@ -175,6 +177,16 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 							config[scope] = enabled[scope]
 						end
 					end
+
+					config = Hash[config.sort]
+
+					# Global modules up front
+					if gc = config.delete("global")
+						config = {"global" => gc}.merge(config)
+					end
+
+					# TODO: Do this somewhere else. Maybe.
+					config.delete_if{ |k, v| v.empty?}
 
 					# Write the changes
 					File.open(DEX_CONFIG,"w") do |file|

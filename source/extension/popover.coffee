@@ -37,7 +37,12 @@ loadJSON = (url) ->
 
 	xhr.onreadystatechange = ->
 		if xhr.readyState == 4 && xhr.status == 200
-			moduleJSON = JSON.parse xhr.responseText
+			try
+				moduleJSON = JSON.parse xhr.responseText
+			catch e
+				console.error "Error parsing response JSON: #{e}"
+				console.error "xhr.responseText is blank" if xhr.responseText == ""
+				return
 
 			moduleJSON.json_url = jsonURL
 
