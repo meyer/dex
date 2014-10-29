@@ -9,7 +9,19 @@ getHostnameFromURL = (url) ->
 	return url
 
 isForbiddenURL = (url) ->
-	!url || ~url.indexOf("//localhost") || ~url.indexOf("//127.0.0.1") || ~url.indexOf("chrome://") || ~url.indexOf("chrome-extension://") || ~url.indexOf(".dev")
+	forbidden = false
+
+	[
+		"//localhost"
+		"//127.0.0.1"
+		"chrome://"
+		"chrome-extension://"
+		".dev"
+		".local"
+	].forEach (urlPiece) ->
+		forbidden = true if ~url.indexOf(urlPiece)
+
+	forbidden
 
 updateBadgeCount = (badgeText) ->
 	if window.chrome
