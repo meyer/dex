@@ -222,7 +222,9 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					load_me.each do |file|
 						body_prefix << "[+] #{file}"
 						body << "/* @start #{file} */"
+            body << "\nconsole.group('#{file}');\n" if ext == "js"
 						body << IO.read(file)
+            body << "\nconsole.groupEnd();\n" if ext == "js"
 						body << "/* @end #{file} */"
 					end
 				end
