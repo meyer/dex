@@ -33,6 +33,7 @@ TEMP_DIR = "./build"
 %w(INT TERM).each {|s| trap(s){puts "\ntake care out there \u{1f44b}"; abort}}
 
 # Don’t increment version number unless a running a task
+# TODO: Make this more awesome.
 unless Rake.application.top_level_tasks == ["default"]
 	# Stolen from http://www.ruby-doc.org/core-2.0.0/File.html#method-i-flock
 	File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
