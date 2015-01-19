@@ -57,7 +57,6 @@ class String
 	def console_bold; colorize(self, "\e[1m"); end
 	def console_underline; colorize(self, "\e[4m"); end
 	def colorize(text, color_code)  "#{color_code}#{text}\e[0m" end
-	def titleize; split(/(\W)/).map(&:capitalize).join; end
 end
 
 class DexServer < WEBrick::HTTPServlet::AbstractServlet
@@ -127,7 +126,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				Dir.glob("{global,utilities,*.*}/*/").each do |k|
 					k = k[0...-1]
 					metadata[k] = {
-						"Title" => k.rpartition("/")[2].titleize,
 						"Author" => nil,
 						"Description" => "No description provided.",
 						"URL" => nil
@@ -140,6 +138,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					metadata[k].merge! Hash[YAML::load_file(y).each_value do |v|
 						CGI::escapeHTML(v)
 					end]
+					metadata[k]["Title"] = k.rpartition("/")[2]
 				end
 
 				# response["Access-Control-Allow-Origin"] = "*"
@@ -249,6 +248,36 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			else
 				response.body = "'#{file_path}' does not exist."
 			end
+
+			return
+
+		# Create module
+		elsif /^\/create\/(?<site>[^\/]+)\/(?<modulename>.+)$/.match request.path
+			site, module_name = $~.captures
+
+			file_path = File.join(DEX_DIR, site, module_name)
+
+			unless File.directory?(file_path)
+				FileUtils.mkdir_p file_path
+
+				# Create blank files
+				# TODO: Load from template
+
+				File.open(File.join(file_path, "info.yaml"), "w") {|f|
+					f.puts "---"
+					f.puts "Author: John Smith"
+					f.puts "Description: \"Description for `#{module_name}`\""
+				}
+
+				FileUtils.touch File.join(file_path, "rename-me.coffee")
+				FileUtils.touch File.join(file_path, "rename-me.css")
+
+				response.body = "Created '#{file_path}' and added some blank files for you."
+			else
+				response.body = "Path '#{file_path}' already exists. Opening..."
+			end
+
+			`open "#{file_path}"`
 
 			return
 

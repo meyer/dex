@@ -1,12 +1,10 @@
 # Meet Dex.
 
-Quite simply, Dex is tool that allows you to load custom JS and CSS on a per-site basis.
+Dex is tool that allows you to load custom JS and CSS on a per-site basis.
 
-It’s a two-part system—a tiny li’l webrick server that runs on port 3131 and chucks JS and CSS files from `~/.dex`, and a browser extension that loads those files (and jQuery) into Your Browser of Choice (assuming that you chose Chrome or Safari).
+It’s a two-part system—a tiny li’l webrick server that runs on port 3131 and serves JS and CSS files from `~/.dex`, and a browser extension that loads those files (and jQuery) into Your Browser of Choice (assuming that you chose Chrome or Safari).
 
-## How do I get it?
-
-A fair question, but not one we’ll cover today. If you’d like to install Dex, though, here’s the deal. Three steps:
+## Getting Started: Installation
 
 1. Clone the `dex` repository to somewhere sensible and install the daemon.
 
@@ -16,6 +14,8 @@ A fair question, but not one we’ll cover today. If you’d like to install Dex
 
 	That’ll install the `dex` server to `/usr/local/bin` and set it to automatically start when your computer boots up.
 
+	Once the daemon is installed, you can delete the downloaded Dex directory.
+
 2. Install the browser extension in Your Cool Browser.
 	* **Safari**: [Download the Safari extension][safariextz] and double-click
 		it to install.
@@ -23,23 +23,35 @@ A fair question, but not one we’ll cover today. If you’d like to install Dex
 
 3. Go to [localhost:3131][dexurl]. Your browser will complain about the self-signed SSL certificate. Mark the certificate as “trusted”. There’s an “Always Trust” option in there somewhere. Check the box.
 
-## What now?
-Dex should be up and running all smooth-like with a few default modules loaded. You can see and change modules per-site at `https://localhost:3131/SITEURL.com.html`. Click the module name to enable or disable. It’s still a bit janky, but don’t worry—I’ll be making that a whole lot sexier as soon as I have the time.
 
-## Write Yourself a Module
-1. Do you want to modify *one particular site* (`example.com`)?
+## Modules: The core of Dex
 
-	1. Create a folder in `~/.dex/` named `example.com`. In your newly created folder, create a folder named something descriptive, like `change background to red`.
-	2. Put CSS and JS files corresponding to the particular module in `change background to red`.
+Every time you visit a URL, the Dex browser extension loads one special CSS file and one special JS file for that specific domain. These two files are specifically built based on *modules* that you have enabled in the Dex extension popover.
 
-	Files are loaded alphabetically, so if you’ve got one file that relies on another, prefix the filename with an underscore or something. Or call it something like “aaaa load first.js” Nokia style. Whatever.
+A *module* is simply a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task. Modules live subfolders inside a folder called `.dex` in your home directory (`/Users/your-username/`, also known as `~/`). Modules can be placed in three different types of subfolders, depending on what the scope of the module should be.
 
-	If you’re unsure how everything’s loading, you can go to `https://localhost:3131/example.com.js` or `https://localhost:3131/example.com.css` to see the file that the extension is loading.
+1. If you want to modify *one particular site*, you’ll want to place the module in a *site-specific folder*. Site-specific folders are URL-named folders (`~/.dex/github.com/`, `~/.dex/google.com/`, etc.). Site-specific modules are only loaded for the exact matching URL. Subdomains of URLs are treated as separate URLs and can be configured independently of the parent URL, but they have access to all the parent URL’s modules. This is especially useful when dealing with beta subdomains.
 
-2. Do you want to modify *every site you visit*?
+2. If you want to modify *every site you visit*, you’ll want to put the module inside a folder called `~/.dex/global/`. Global modules are loaded before all other modules, and on every page load of every webpage you visit.
 
-	1. Create a folder in `~/.dex/` named `global` if it doesn’t exist already.
-	2. Follow step 2 above. BAM!
+3. If you want to modify any particular site, but *not all sites*, you’ll want to put your module folder inside a folder called `~/.dex/utilities/`. Utility modules show up as regular site-specific modules in the Dex popover, but enabling a utility module will only enable it for the specific domain that you’ve browsed to.
+
+
+## Writing your first module
+
+1. First, you need to decide what you want your module to do. Create a folder with a sensible and identifiable name related to the module’s actions. Do you want to make a website’s background red? Make a folder called `Change body background to red`.
+2. Put CSS and JS files corresponding to the particular module’s actions in the folder you just created.
+1. Next, you need to decide what the scope of your module should be. Consult the previous section of this README to determine scope, then place the folder you created into a corresponding parent folder.
+3. Visit the URL you want to modify, open the Dex popover menu, and click `Change body background to red` to enable the module.
+4. Refresh the web page. The module CSS and JS should load right away.
+
+
+### Pro Tips
+
+Files are loaded alphabetically. Prefix a module name with underscores or spaces to bump it up the module list.
+
+If you’re unsure how everything’s loading, you can go to `https://localhost:3131/example.com.js` or `https://localhost:3131/example.com.css` to see the file that the Dex browser extension is loading.
+
 
 ### File Load Order
 Dex loads files in the following order:
@@ -51,22 +63,19 @@ Dex loads files in the following order:
 
 Files are bunched into one file per file type and served over `https`.
 
-## Talk to me.
+
+
+
+# Talk to me.
 Got a problem or a suggestion? Here’s how to get ahold of me, in preferred order:
 
 1. [Start an issue][issues].
-2. Bug me on Twitter: [@meyer][]
-3. Send me an email maybe: [mikemeyer@gmail.com][]
-
-Here’s how to get ahold of me, in order of expediency:
-
-1. [Start an issue][issues].
-2. Bug me on Twitter: [@meyer][]
-3. Send me an email maybe: [mikemeyer@gmail.com][]
+2. Send me an email: [email][]
+999. Bug me on Twitter: [@meyer][]
 
 [crx]: https://chrome.google.com/webstore/detail/dex/djkimknbcjbgnocjbbmliklifoflmfah
 [safariextz]: https://github.com/meyer/dex/raw/master/extensions/dex-1.0.1.safariextz
 [dexurl]: https://localhost:3131
 [@meyer]: http://twitter.com/meyer
-[mikemeyer@gmail.com]: mailto:mikemeyer@gmail.com
+[email]: mailto:github+dex@meyer.fm
 [issues]: https://github.com/meyer/dex/issues
