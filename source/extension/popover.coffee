@@ -1,25 +1,45 @@
-loadJSON = (url) ->
-	# TODO: Use official method to detect invalid Chrome/Safari pages
+validateURL = (url) ->
+	if !url?
+		console.error "URL is not defined"
+		return false
 
-	ignored = [
-		"chrome://"
-		"chrome-extension://"
-		"//localhost"
-		"//127.0.0.1"
-		".dev"
+	if url == ""
+		console.error "URL is blank"
+		return false
+
+	try
+		# Strip down to hostname
+		[protocol, url] = url.split("://")
+		url = url.split("/")[0]
+	catch e
+		console.error "URL parsing failed:", e
+		return false
+
+	ignoredProtocols = [
+		"chrome"
+		"chrome-extension"
 	]
 
-	for str in ignored
-		if ~url.indexOf(str)
-			console.error "INVALID PAGE: starts with #{str}"
-			document.body.innerHTML = "<h1>Invalid page: matches <code>#{str}</code></h1>"
-			return
+	if ~ignoredProtocols.indexOf(protocol)
+		console.error "URL protocol is blacklisted"
+		return false
 
-	# Strip down to hostname
-	url = url.split("://")[1].split("/")[0].replace(/^ww[w0-9]\./, "")
+	# Lazy IP address regex, *.dev, localhost
+	if url.match /^((?:\d{1,3}\.){3}\d{1,3}|([^\/]+)\.dev|localhost)/
+		console.error "URL is invalid (regex miss, #{url})"
+		return false
 
+	# Necessary?
 	unless url.match /^[\w\-_.]+\.\w{2,}$/
-		document.body.innerHTML = "<h1>Invalid URL: <code>#{url}</code></h1>"
+		console.error "URL is invalid (regex miss 2, #{url})"
+		return
+
+	return url
+
+loadJSON = (originalURL) ->
+
+	unless url = validateURL(originalURL)
+		console.error "loadJSON cannot continue: URL is invalid"
 		return
 
 	jsonURL = "https://localhost:3131/#{url}.json"
@@ -75,14 +95,21 @@ loadJSON = (url) ->
 link = document.createElement "link"
 link.rel = "stylesheet"
 
-if window.safari
+if window.safari?.extension?
 	link.href = safari.extension.baseURI + "popover.css"
 	loadJSON safari.application.activeBrowserWindow.activeTab.url
 
-if window.chrome
+else if window.chrome?.extension?
 	link.href = chrome.extension.getURL "popover.css"
 	chrome.tabs.getSelected null, (tab) ->
 		loadJSON tab.url
 		return
+
+else
+	console.info "INIT DEMOTRON"
+	if window.location.hash == ""
+		loadJSON "http://dribbble.com"
+	else
+		loadJSON "http://#{window.location.hash.substr(1)}"
 
 document.head.appendChild link
