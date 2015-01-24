@@ -142,12 +142,15 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					end]
 				end
 
-				ref = URI(request["Referer"])
-
-				if ["localhost", "dexfiles.org"].include? ref.host
-					url = URI.join(ref, "/").to_s[0...-1]
-					puts "Access-Control-Allow-Origin = #{url}"
-					response["Access-Control-Allow-Origin"] = url
+				if request["Referer"]
+					ref = URI(request["Referer"])
+					if ["localhost", "dexfiles.org"].include? ref.host
+						url = URI.join(ref, "/").to_s[0...-1]
+						puts "Access-Control-Allow-Origin = #{url}"
+						response["Access-Control-Allow-Origin"] = url
+					end
+				else
+					puts 'request["Referer"] was not set'
 				end
 
 				toggle = request.query["toggle"].to_s.encode('utf-8')
