@@ -127,8 +127,10 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					k = k[0...-1]
 					metadata[k] = {
 						"Author" => nil,
-						"Description" => "No description provided.",
-						"URL" => nil
+						"Description" => nil,
+						"URL" => nil,
+						# TODO: Prevent "Title" from being overridden by info.yaml
+						"Title" => k.rpartition("/")[2]
 					}
 				end
 
@@ -138,11 +140,15 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					metadata[k].merge! Hash[YAML::load_file(y).each_value do |v|
 						CGI::escapeHTML(v)
 					end]
-					metadata[k]["Title"] = k.rpartition("/")[2]
 				end
 
-				# response["Access-Control-Allow-Origin"] = "*"
-				# puts "Request: #{request.to_json}"
+				ref = URI(request["Referer"])
+
+				if ["localhost", "dexfiles.org"].include? ref.host
+					url = URI.join(ref, "/").to_s[0...-1]
+					puts "Access-Control-Allow-Origin = #{url}"
+					response["Access-Control-Allow-Origin"] = url
+				end
 
 				toggle = request.query["toggle"].to_s.encode('utf-8')
 
@@ -220,11 +226,20 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 					load_me.each do |file|
 						body_prefix << "[+] #{file}"
-						body << "/* @start #{file} */"
-            body << "\nconsole.group('#{file}');\n" if ext == "js"
+
+						if ext == "js"
+							body << "\nconsole.group('#{file}');\n"
+						else
+							body << "/* @start #{file} */"
+						end
+
 						body << IO.read(file)
-            body << "\nconsole.groupEnd();\n" if ext == "js"
-						body << "/* @end #{file} */"
+
+						if ext == "js"
+							body << "\nconsole.groupEnd();\n"
+						else
+							body << "/* @end #{file} */"
+						end
 					end
 				end
 
@@ -252,7 +267,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			return
 
 		# Create module
-		elsif /^\/create\/(?<site>[^\/]+)\/(?<modulename>.+)$/.match request.path
+		elsif /^\/create\/(?<site>(?:global|utilities|[^\/]+\.[^\/]+))\/(?<modulename>[^\/]+)$/.match request.path
 			site, module_name = $~.captures
 
 			file_path = File.join(DEX_DIR, site, module_name)
@@ -260,23 +275,20 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			unless File.directory?(file_path)
 				FileUtils.mkdir_p file_path
 
-				# Create blank files
-				# TODO: Load from template
-
 				File.open(File.join(file_path, "info.yaml"), "w") {|f|
 					f.puts "---"
-					f.puts "Author: John Smith"
-					f.puts "Description: \"Description for `#{module_name}`\""
+					f.puts "Author: null"
+					f.puts "Description: \"Write a concise description for `#{module_name}`\" here."
 				}
 
-				FileUtils.touch File.join(file_path, "rename-me.coffee")
-				FileUtils.touch File.join(file_path, "rename-me.css")
-
-				response.body = "Created '#{file_path}' and added some blank files for you."
+				response.body = "Created module at '#{file_path}'."
 			else
-				response.body = "Path '#{file_path}' already exists. Opening..."
+				response.body = "Path '#{file_path}' already exists."
 			end
 
+			puts response.body
+
+			puts "Opening '#{file_path}'"
 			`open "#{file_path}"`
 
 			return
