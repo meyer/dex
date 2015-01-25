@@ -2,7 +2,7 @@
 
 Dex is tool that allows you to load custom JS and CSS on a per-site basis.
 
-It’s a two-part system—a tiny li’l webrick server that runs on port 3131 and serves JS and CSS files from `~/.dex`, and a browser extension that loads those files (and jQuery) into Your Browser of Choice (assuming that you chose Chrome or Safari).
+It’s a two-part system—a tiny li’l webrick server that runs on port 3131 and serves JS and CSS files from `~/.dex`, and a browser extension that loads those files into Your Browser of Choice (assuming that you chose Chrome or Safari).
 
 ## Getting Started: Installation
 
@@ -28,11 +28,11 @@ It’s a two-part system—a tiny li’l webrick server that runs on port 3131 a
 
 Every time you visit a URL, the Dex browser extension loads one special CSS file and one special JS file for that specific domain. These two files are specifically built based on *modules* that you have enabled in the Dex extension popover.
 
-A *module* is simply a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task. Modules live subfolders inside a folder called `.dex` in your home directory (`/Users/your-username/`, also known as `~/`). Modules can be placed in three different types of subfolders, depending on what the scope of the module should be.
+What is a *module*? It’s a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task. Modules live in subfolders inside a folder called `.dex` in your home directory (`/Users/your-username/`, also known as `~`). Modules can be placed in three different types of subfolders, depending on what the scope of the module should be. Here’s the breakdown:
 
-1. If you want to modify *one particular site*, you’ll want to place the module in a *site-specific folder*. Site-specific folders are URL-named folders (`~/.dex/github.com/`, `~/.dex/google.com/`, etc.). Site-specific modules are only loaded for the exact matching URL. Subdomains of URLs are treated as separate URLs and can be configured independently of the parent URL, but they have access to all the parent URL’s modules. This is especially useful when dealing with beta subdomains.
+1. If you want to modify *one particular site*, you’ll want to place the module in a *site-specific folder*. Site-specific folders are URL-named folders (`~/.dex/github.com/`, `~/.dex/google.com/`, etc.). Enabled site-specific modules are only loaded for the exact matching URL. Subdomains of URLs are treated as separate URLs and can be configured independently of the parent URL, but they have access to all the parent URL’s modules. This is especially useful when dealing with beta subdomains.
 
-2. If you want to modify *every site you visit*, you’ll want to put the module inside a folder called `~/.dex/global/`. Global modules are loaded before all other modules, and on every page load of every webpage you visit.
+2. If you want to modify *every site you visit*, you’ll want to put the module inside a folder called `~/.dex/global/`. Enabled global modules are loaded on every page load of every webpage you visit.
 
 3. If you want to modify any particular site, but *not all sites*, you’ll want to put your module folder inside a folder called `~/.dex/utilities/`. Utility modules show up as regular site-specific modules in the Dex popover, but enabling a utility module will only enable it for the specific domain that you’ve browsed to.
 
