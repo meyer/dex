@@ -57,6 +57,14 @@ class String
 	def console_bold; colorize(self, "\e[1m"); end
 	def console_underline; colorize(self, "\e[4m"); end
 	def colorize(text, color_code)  "#{color_code}#{text}\e[0m" end
+	def markitdown
+		# TODO: Use lookahead/lookbehind magic to match pairs
+
+		self.gsub! %r{\*\*(\w|[^\s][^\*]*?[^\s])\*\*}x, '<strong>\1</strong>'
+		self.gsub! %r{  \*(\w|[^\s][^\*]*?[^\s])\*  }x, '<em>\1</em>'
+		self.gsub! %r{   `(\w|[^\s][^ `]*?[^\s])`   }x, '<code>\1</code>'
+		return self
+	end
 end
 
 class DexServer < WEBrick::HTTPServlet::AbstractServlet
@@ -129,7 +137,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 						"Author" => nil,
 						"Description" => nil,
 						"URL" => nil,
-						# TODO: Prevent "Title" from being overridden by info.yaml
 						"Title" => k.rpartition("/")[2]
 					}
 				end
@@ -137,17 +144,28 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				# Replace lame data with nifty metadata
 				Dir.glob("{global,utilities,*.*}/*/info.yaml").each do |y|
 					k = y[0...-10]
-					metadata[k].merge! Hash[YAML::load_file(y).each_value do |v|
-						CGI::escapeHTML(v)
-					end]
+
+					# Load key-value YAML file
+					YAML::load_file(y).each do |ik,iv|
+						case ik
+						when "Title"
+							puts "Ignoring Title metadata"
+						else
+							if iv.class == String
+								metadata[k][ik] = CGI::escapeHTML(iv).markitdown
+							else
+								metadata[k][ik] = iv
+							end
+						end
+					end
+
 				end
 
 				if request["Referer"]
 					ref = URI(request["Referer"])
 					if ["localhost", "dexfiles.org"].include? ref.host
-						url = URI.join(ref, "/").to_s[0...-1]
-						puts "Access-Control-Allow-Origin = #{url}"
-						response["Access-Control-Allow-Origin"] = url
+						response["Access-Control-Allow-Origin"] = URI.join(ref, "/").to_s[0...-1]
+						puts "Access-Control-Allow-Origin = #{response["Access-Control-Allow-Origin"]}"
 					end
 				else
 					puts 'request["Referer"] was not set'
@@ -209,6 +227,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 				response.body = {
 					"metadata" => metadata,
+					"site_url" => url,
 					"site_available" => available["site"].map!{|v| CGI::escapeHTML(v.to_s)},
 					"site_enabled" => enabled["site"].map!{|v| CGI::escapeHTML(v.to_s)},
 					"global_available" => available["global"].map!{|v| CGI::escapeHTML(v.to_s)},

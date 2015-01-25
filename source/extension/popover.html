@@ -2,54 +2,64 @@
 <html>
 <head>
 	<meta charset="utf-8">
+	<title>Dex</title>
 	<link rel="stylesheet" href="popover.css">
 	<script src="lodash.min.js"></script>
 	<script id="module-list-tpl" type="text/html">
 <ul id="site-modules">
-<%
 
-if(data.site_available.length > 0) { %>
-	<li class="site-modules">
-		<h2>Site-specific Modules</h2>
+<% if(data.site_available.length > 0) { %>
+	<li class="site modules">
+		<h1><%= data.site_url %></h1>
 		<ul>
 <% data.site_available.forEach(function(m){ %>
-			<li<% if(!~data.site_enabled.indexOf(m)){ %> class="disabled"<% } %>>
-				<a href="<%= data.json_url %>?toggle=<%= m %>">
-					<%= data.metadata[m]["Title"] %>
+			<li>
+				<label>
+					<input data-href="<%= data.json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~data.site_enabled.indexOf(m)){ %> checked<% } %>>
+					<div class="fancy-switch"><div></div></div>
+
+					<h2><%= data.metadata[m]["Title"] %></h2>
+<% if( data.metadata[m]["Description"] ) { %>
+					<p><%= data.metadata[m]["Description"] %></p>
+<% } %>
+				</label>
 				</a>
 			</li>
 <% }); %>
 		</ul>
 	</li>
 <% } else { %>
-	<li class="empty site-modules"><h2>No site-specific modules for <%= m %></h2></li>
+	<li class="empty site modules"><h2>No site-specific modules for <%= m %></h2></li>
 <% } %>
 
-
-<%
-
-
-if(data.global_available.length > 0){ %>
-	<li>
-		<h2>Global Modules</h2>
+<% if(data.global_available.length > 0) { %>
+	<li class="global modules">
+		<h1>Everything</h1>
 		<ul>
 <% data.global_available.forEach(function(m){ %>
-			<li<% if( !~data.global_enabled.indexOf(m)){ %> class="disabled"<% } %>>
-				<a href="<%= data.json_url %>?toggle=<%= m %>">
-					<%= data.metadata[m]["Title"] %>
+			<li>
+				<label>
+					<input data-href="<%= data.json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~data.global_enabled.indexOf(m)){ %> checked<% } %>>
+					<div class="fancy-switch"><div></div></div>
+
+					<h2><%= data.metadata[m]["Title"] %></h2>
+<% if( data.metadata[m]["Description"] ) { %>
+					<p><%= data.metadata[m]["Description"] %></p>
+<% } %>
+				</label>
 				</a>
 			</li>
 <% }); %>
 		</ul>
 	</li>
 <% } else { %>
-	<li class="empty"><h2>No global modules</h2></li>
+	<li class="empty global modules"><h2>No global modules for <%= m %></h2></li>
 <% } %>
+
 </ul>
 	</script>
 	<script src="popover.js"></script>
 </head>
 <body>
-	<div class="loading">Loading modules&hellip;</div>
 </body>
 </html>
