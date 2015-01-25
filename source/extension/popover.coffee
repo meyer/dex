@@ -44,7 +44,7 @@ loadJSON = (originalURL) ->
 
 	jsonURL = "https://localhost:3131/#{url}.json"
 
-	moduleList = _.template(
+	moduleListTpl = _.template(
 		document.getElementById("module-list-tpl").innerHTML
 		null
 		{
@@ -68,27 +68,21 @@ loadJSON = (originalURL) ->
 
 			console.log moduleJSON
 
-			document.body.innerHTML = moduleList moduleJSON
-			ul = document.getElementById("site-modules")
+			document.body.innerHTML = moduleListTpl(moduleJSON)
 
-			ul.addEventListener "click", (e) ->
-				# Link?
-				if e.target.tagName == "A"
-					li = e.target.parentNode
-					xhr2 = new XMLHttpRequest()
-					xhr2.open "GET", e.target.href, true
-					xhr2.onreadystatechange = ->
-						if xhr2.readyState == 4 && xhr2.status == 200
-							[action, module] = JSON.parse xhr2.responseText
-							console.log "#{module}: #{action}"
-							if action == "disabled"
-								li.classList.add "disabled"
-							else
-								li.classList.remove "disabled"
+			document.body.addEventListener "change", (e) ->
+				unless e.target.dataset.href?
+					console.error "Element #{e.target.tagName} is missing data-href attribute"
+					return
 
-					xhr2.send()
+				xhr2 = new XMLHttpRequest()
+				xhr2.open "GET", e.target.dataset.href, true
+				xhr2.onreadystatechange = ->
+					if xhr2.readyState == 4 && xhr2.status == 200
+						[action, module] = JSON.parse xhr2.responseText
+						console.log "#{module}: #{action}, checked: #{e.target.checked}"
 
-					e.preventDefault()
+				xhr2.send()
 
 	xhr.send()
 
