@@ -2,54 +2,34 @@ selectedID = -1
 currentPageURL = ""
 cachedValue = 0
 
-getHostnameFromURL = (url) ->
-	url = url.split("//")[1] if ~url.indexOf("//")
-	url = url.split("/")[0]
-	url
-
-isForbiddenURL = (url) ->
-	forbidden = false
-
-	[
-		"//localhost"
-		"//127.0.0.1"
-		"chrome://"
-		"chrome-extension://"
-		".dev"
-		".local"
-	].forEach (urlPiece) ->
-		forbidden = true if ~url.indexOf(urlPiece)
-
-	forbidden
-
 updateBadgeCount = (badgeText) ->
 	if window.chrome
 		chrome.tabs.query {active: true, currentWindow: true}, (tabs) ->
-			tab = tabs[0]
-			currentPageURL = tab.url
+			unless tabs[0]?.url?
+				console.error "Tab URL is not set"
+				return
 
-			console.log "selectedID == tab.id" if selectedID == tab.id
-			selectedID = tab.id
+			currentPageURL = tabs[0].url
 
-			if isForbiddenURL tab.url
-				console.log "Disable tab: #{tab.url}"
-				chrome.browserAction.disable tab.id
-				badgeText = ""
-			else
-				console.log "Enable tab: #{tab.url}"
-				chrome.browserAction.enable tab.id
+			console.log "selectedID == tab.id" if selectedID == tabs[0].id
+			selectedID = tabs[0].id
+
+			action = if !utils.getValidHostname(tabs[0].url) then "disable" else "enable"
+
+			console.log "#{action}d tab #{tab.id}"
+			chrome.browserAction[action] tabs[0].id
 
 			chrome.browserAction.setBadgeText
 				text: "#{badgeText}"
-				tabId: tab.id
+				tabId: tabs[0].id
 
-	if window.safari
+	else if window.safari
 		currentPageURL = safari.application.activeBrowserWindow.activeTab.url
 
 		for item in safari.extension.toolbarItems
 			break if item.identifier != "DexToolbarItem"
 
-			item.disabled = isForbiddenURL(item.browserWindow.activeTab.url)
+			item.disabled = !utils.getValidHostname(item.browserWindow.activeTab.url)
 			badgeText = 0
 			badgeText = item.browserWindow.activeTab.url.length if !item.disabled
 			item.badge = badgeText if "badge" of item
@@ -58,18 +38,13 @@ updateBadgeCount = (badgeText) ->
 	return
 
 getBadgeCount = (url) ->
-	hostname = getHostnameFromURL(url)
-	returnValue = 0
-	if hostname
-		xhr = new XMLHttpRequest();
-		xhr.onload = ->
-			console.log this.responseText
-			console.log JSON.parse this.responseText
-			JSON.parse this.responseText
+	a = document.createElement("a")
+	a.href = url
 
-		xhr.open "get", "<%= DEX_URL %>/#{hostname}.json", true
-		xhr.send()
-	else
+	utils.getJSON "<%= DEX_URL %>/#{a.hostname}.json", (data) ->
+		console.log data
+
+	return
 
 # Events
 if window.safari
