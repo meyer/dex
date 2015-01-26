@@ -1,51 +1,40 @@
-hostname = window.location.host.replace /^www\./, ""
-address = "<%= DEX_URL %>/"
+dexURL = "<%= DEX_URL %>/"
 
-console.log "DIMENSIONS -- W:#{window.self.innerWidth+1}, H: #{window.self.innerHeight+1}"
+# TODO: Conditionally support iframes
+if window.self isnt window.top
+	console.log "iframe, total area: #{(window.self.innerWidth+1) * (window.self.innerHeight+1)}px"
 
-if not window.self is window.top
-	console.log "IFRAME: #{(window.self.innerWidth+1) * (window.innerHeight+1)}"
-else
-	console.log "NOT IFRAME: #{(window.self.innerWidth+1) * (window.innerHeight+1)}"
-
-# no localhost
-return if ~hostname.indexOf "localhost"
-return if ~hostname.indexOf "127.0.0.1"
-
-dex = document.createElement "script"
+dexJS = document.createElement "script"
 
 if window.chrome
-	dex.src = chrome.extension.getURL "dex.js"
+	dexJS.src = chrome.extension.getURL "dex.js"
 else
-	dex.src = safari.extension.baseURI + "dex.js"
+	dexJS.src = safari.extension.baseURI + "dex.js"
 
-js = document.createElement "script"
-js.src = address + hostname + ".js"
+hostJS = document.createElement "script"
+hostJS.src = dexURL + window.location.host + ".js"
 
-css = document.createElement "link"
-css.rel = "stylesheet"
-css.href = address + hostname + ".css"
+hostCSS = document.createElement "link"
+hostCSS.rel = "stylesheet"
+hostCSS.href = dexURL + window.location.host + ".css"
 
 asapLoaded = false
 bodyLoaded = false
 
-# Because DOMContentLoaded is too slow™
-# TODO: Find an event that isn’t deprecated. Or maybe just use an interval? IDK.
-document.addEventListener "DOMNodeInserted", (e) ->
-	if typeof(e.relatedNode.tagName) != "undefined"
-		if !asapLoaded
-			d = document.head || document.body
-			if d
-				asapLoaded = true
-				d.appendChild css
+insertDexfiles = (e) ->
+	return unless e.relatedNode.tagName?
 
-		if !bodyLoaded
-			d = document.body || false
-			if d
-				bodyLoaded = true
-				d.appendChild dex
-				d.appendChild js
-				d.appendChild css.cloneNode()
+	if !asapLoaded && headOrBody = document.head || document.body
+		asapLoaded = true
+		headOrBody.appendChild hostCSS
 
-		if asapLoaded and bodyLoaded
-			this.removeEventListener "DOMNodeInserted", arguments.callee, false
+	if !bodyLoaded && document.body
+		bodyLoaded = true
+		document.body.appendChild dexJS
+		document.body.appendChild hostJS
+		document.body.appendChild hostCSS.cloneNode()
+
+	if asapLoaded and bodyLoaded
+		this.removeEventListener "DOMNodeInserted", insertDexfiles, false
+
+document.addEventListener "DOMNodeInserted", insertDexfiles
