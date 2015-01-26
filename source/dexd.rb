@@ -59,10 +59,9 @@ class String
 	def colorize(text, color_code)  "#{color_code}#{text}\e[0m" end
 	def markitdown
 		# TODO: Use lookahead/lookbehind magic to match pairs
-
-		self.gsub! %r{\*\*(\w|[^\s][^\*]*?[^\s])\*\*}x, '<strong>\1</strong>'
-		self.gsub! %r{  \*(\w|[^\s][^\*]*?[^\s])\*  }x, '<em>\1</em>'
-		self.gsub! %r{   `(\w|[^\s][^ `]*?[^\s])`   }x, '<code>\1</code>'
+		self.gsub! %r{\*\*(\w|[^\s][^*]*?[^\s])\*\*}x, '<strong>\1</strong>'
+		self.gsub! %r{  \*(\w|[^\s][^*]*?[^\s])\*  }x, '<em>\1</em>'
+		self.gsub! %r{   `(\w|[^\s][^`]*?[^\s])`   }x, '<code>\1</code>'
 		return self
 	end
 end

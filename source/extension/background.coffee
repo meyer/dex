@@ -50,7 +50,7 @@ updateBadgeCount = (badgeText) ->
 		for item in safari.extension.toolbarItems
 			break if item.identifier != "DexToolbarItem"
 
-			item.disabled = isForbiddenURL item.browserWindow.activeTab.url
+			item.disabled = isForbiddenURL(item.browserWindow.activeTab.url)
 			badgeText = 0
 			badgeText = item.browserWindow.activeTab.url.length if !item.disabled
 			item.badge = badgeText if "badge" of item
@@ -59,7 +59,7 @@ updateBadgeCount = (badgeText) ->
 	return
 
 getBadgeCount = (url) ->
-	hostname = getHostnameFromURL url
+	hostname = getHostnameFromURL(url)
 	returnValue = 0
 	if hostname
 		xhr = new XMLHttpRequest();
