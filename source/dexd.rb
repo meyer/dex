@@ -50,7 +50,7 @@ end
 
 DEX_CONFIG = dex_config_file
 
-def clean_url(url)
+def validate_url(url)
 	# Remove initial www and ww0-9
 	url.gsub!(/^ww[w\d]\./, "")
 	url
@@ -96,29 +96,36 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			"png"  => "image/png"
 		}
 
-		rgx = {
-			"rsrc" => '(?<filename>[\w \-_\.@]+)\.(?<ext>png|svg|js|css)$',
-			"url" =>  '(?<url>[\w\-_.]+\.\w{2,})',
-			"mod" =>  '(?<mod>[\w\s\-]+)',
-			"ext" =>  '(?<ext>css|js|json)'
-		}
-
 		# Info
 		if request.path == "/"
 			response.body = config.to_json
 			return
 
 		# Site-specific actions
-		# /url.com.{css,js,json}
-		elsif /^\/#{rgx["url"]}\.#{rgx["ext"]}$/.match request.path
-			url, ext = $~.captures
-			url = clean_url(url)
+		# /url.com.{css,json,js}
+		elsif %r{
+			^
+			\/
+			(?<url>[^\/]+)
+			\.
+			(?<ext>css|json|js)
+			$
+		}x.match request.path
+			url, ext = $~["url"], $~["ext"]
+
+			unless url = validate_url(url)
+				response.body = "URL `#{url}` is invalid"
+				puts response.body
+				response["code"] = 403
+				return
+			end
 
 			response["Content-Type"] = content_types[ext]
 
-			# TODO: Get original array in map? "h" sux.
-			h = url.split(".")
-			hostnames = h.each_with_index.map {|v,k| h[k..h.length].join "."}[0...-1]
+			hostname_bits = url.split(".")
+			hostnames = hostname_bits.each_index.map { |idx|
+				hostname_bits[idx..hostname_bits.length].join(".")
+			}[0...-1]
 
 			available = {}
 			enabled = {}
@@ -281,7 +288,12 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			return
 
 		# Edit path
-		elsif /^\/edit\/(?<path>.*+)$/.match request.path
+		elsif %r{
+			^
+			\/edit\/
+			(?<path>[\/]+)
+			$
+		}x.match request.path
 			path = $~.captures
 			file_path = File.join(DEX_DIR, path)
 
@@ -324,13 +336,22 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 		# Load a resource if it exists
 		# /url.com/module/resource.{css,js,png,svg,html}
-		elsif /^\/#{rgx["url"]}\/#{rgx["mod"]}\/#{rgx["rsrc"]}$/.match request.path
-			url, mod, filename, ext = $~.captures
-
+		elsif %r{
+			^
+			\/
+			(?<url>[^\/]+)
+			\/
+			(?<mod>[^\/]+)
+			\/
+			(?<filename>[^\/]+)
+			\.
+			(?<ext>png|svg|js|css)
+			$
+		}x.match request.path
 			file_path = File.join(DEX_DIR, request.path)
 
 			if File.exist?(file_path)
-				response["Content-Type"] = content_types[ext]
+				response["Content-Type"] = content_types[$~["ext"]]
 				response.body = IO.read(file_path)
 				return
 			end
