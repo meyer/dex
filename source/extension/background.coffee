@@ -5,7 +5,6 @@ cachedValue = 0
 getHostnameFromURL = (url) ->
 	url = url.split("//")[1] if ~url.indexOf("//")
 	url = url.split("/")[0]
-	url = url.replace /^www\./, ""
 	url
 
 isForbiddenURL = (url) ->

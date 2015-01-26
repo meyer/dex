@@ -50,6 +50,12 @@ end
 
 DEX_CONFIG = dex_config_file
 
+def clean_url(url)
+	# Remove initial www and ww0-9
+	url.gsub!(/^ww[w\d]\./, "")
+	url
+end
+
 # String formatting methods for the console
 class String
 	def console_red; colorize(self, "\e[31m"); end
@@ -106,6 +112,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 		# /url.com.{css,js,json}
 		elsif /^\/#{rgx["url"]}\.#{rgx["ext"]}$/.match request.path
 			url, ext = $~.captures
+			url = clean_url(url)
+
 			response["Content-Type"] = content_types[ext]
 
 			# TODO: Get original array in map? "h" sux.
