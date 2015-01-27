@@ -12,11 +12,11 @@ else
 	dexJS.src = safari.extension.baseURI + "dex.js"
 
 hostJS = document.createElement "script"
-hostJS.src = dexURL + window.location.host + ".js"
+hostJS.src = dexURL + window.location.hostname + ".js"
 
 hostCSS = document.createElement "link"
 hostCSS.rel = "stylesheet"
-hostCSS.href = dexURL + window.location.host + ".css"
+hostCSS.href = dexURL + window.location.hostname + ".css"
 
 asapLoaded = false
 bodyLoaded = false
