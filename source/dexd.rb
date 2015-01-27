@@ -53,6 +53,8 @@ DEX_CONFIG = dex_config_file
 def validate_url(url)
 	# Remove initial www and ww0-9
 	url.gsub!(/^ww[w\d]\./, "")
+	return false unless url.include? "."
+	return false if /^.+\.(\d+|dev)$/.match url
 	url
 end
 
@@ -111,12 +113,12 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			(?<ext>css|json|js)
 			$
 		}x.match request.path
-			url, ext = $~["url"], $~["ext"]
+			ext = $~["ext"]
 
-			unless url = validate_url(url)
-				response.body = "URL `#{url}` is invalid"
+			unless url = validate_url($~["url"])
+				response.body = "URL `#{$~["url"]}` is invalid"
 				puts response.body
-				response["code"] = 403
+				response.status = 403
 				return
 			end
 
@@ -125,13 +127,13 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 			hostname_bits = url.split(".")
 			hostnames = hostname_bits.each_index.map { |idx|
 				hostname_bits[idx..hostname_bits.length].join(".")
-			}[0...-1]
+			}
 
 			available = {}
 			enabled = {}
 
-			available["global"] = Dir.glob("global/*/").map {|s| s[0...-1]}
-			available["site"] = Dir.glob("{utilities,#{hostnames.join(",")}}/*/").map {|s| s[0...-1]}
+			available["global"] = Dir.glob("./global/*/").map {|s| s[2...-1]}
+			available["site"] = Dir.glob("./{utilities,#{hostnames.join(",")}}/*/").map {|s| s[2...-1]}
 			available["all"] = available["global"] | available["site"]
 
 			enabled["global"] = available["global"] & (config["global"] || [])
@@ -145,8 +147,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				metadata = {}
 
 				# Get all available modules
-				Dir.glob("{global,utilities,*.*}/*/").each do |k|
-					k = k[0...-1]
+				Dir.glob("./{global,utilities,*.*}/*/").each do |k|
+					k = k[2...-1]
 					metadata[k] = {
 						"Author" => nil,
 						"Description" => nil,
@@ -156,8 +158,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				end
 
 				# Replace lame data with nifty metadata
-				Dir.glob("{global,utilities,*.*}/*/info.yaml").each do |y|
-					k = y[0...-10]
+				Dir.glob("./{global,utilities,*.*}/*/info.yaml").each do |y|
+					k = y[2...-10]
 
 					# Load key-value YAML file
 					YAML::load_file(y).each do |ik,iv|
@@ -241,7 +243,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 				response.body = {
 					"metadata" => metadata,
-					"site_url" => url,
 					"site_available" => available["site"].map!{|v| CGI::escapeHTML(v.to_s)},
 					"site_enabled" => enabled["site"].map!{|v| CGI::escapeHTML(v.to_s)},
 					"global_available" => available["global"].map!{|v| CGI::escapeHTML(v.to_s)},
@@ -257,8 +258,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					body_prefix.push *enabled["all"].map {|e| "[+] #{e}"}
 					body_prefix << "\nEnabled Files:"
 
-					load_me = Dir.glob("{#{enabled["all"].join(",")}}/*.#{ext}")
-					load_me.unshift *Dir.glob("{global,#{url}}/*.js") if ext == "js"
+					load_me = Dir.glob("./{#{enabled["all"].join(",")}}/*.#{ext}")
+					load_me.unshift *Dir.glob("./{global,#{url}}/*.js") if ext == "js"
 
 					load_me.each do |file|
 						body_prefix << "[+] #{file}"
