@@ -85,10 +85,11 @@ def a_to_s(*a_or_s)
 	end
 end
 
-
-def puts_y(*msg) puts "✔ #{a_to_s msg}".console_green end
-def puts_n(*msg) puts "✗ #{a_to_s msg}".console_red end
-def puts_b(*msg) puts "• #{a_to_s msg}" end
+def nap; sleep(0.04); end
+def puts_y(*msg) puts "✔ #{a_to_s msg}".console_green; nap; end
+def print_y(*msg) print "✔ #{a_to_s msg}".console_green; nap; end
+def puts_n(*msg) puts "✗ #{a_to_s msg}".console_red; nap; end
+def puts_b(*msg) puts "• #{a_to_s msg}"; nap; end
 
 def launchd_worked(launch_output)
 	if launch_output.strip!
@@ -126,13 +127,13 @@ end
 
 namespace :daemon do
 	desc "Install dex daemon"
-	task :install => [:preflight, :confirm_install, :install_daemon, :finish_install]
+	task :install => [:preflight, :confirm_install, :install_daemon, :finish_setup]
 
 	desc "Link dex daemon"
-	task :link => [:preflight, :stop, :link_daemon, :finish_link]
+	task :link => [:preflight, :stop, :link_daemon, :finish_setup]
 
 	desc "Build and install dex daemon"
-	task :build_and_install => [:preflight, :confirm_install, :build, :install_daemon, :finish_install]
+	task :build_and_install => [:preflight, :confirm_install, :build, :install_daemon, :finish_setup]
 
 	desc "Uninstall dex daemon"
 	task :uninstall => [:preflight, :confirm_uninstall, :uninstall_daemon]
@@ -259,28 +260,10 @@ namespace :daemon do
 		puts_y "Copied dex daemon files"
 	end
 
-	task :finish_link => [:start, :set_daemon_permissions] do
+	task :finish_setup => [:start, :set_daemon_permissions] do
 		puts
-		if dex_running()
-			puts_y  "dex daemon link complete!"
-			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL."
-		else
-			puts_n "dex daemon link failed"
-			puts "Gosh, uh… this is awkward. I wish I knew what to tell you."
-		end
-		puts
-	end
-
-	task :finish_install => [:start, :set_daemon_permissions] do
-		if dex_running()
-			puts
-			puts_y "dex daemon installation complete!"
-			puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL.", ""
-		else
-			puts
-			puts_n "dex daemon installation failed"
-			puts "Gosh, uh… this is awkward. I wish I knew what to tell you."
-		end
+		puts_y "Installation complete!"
+		puts "If you haven’t already, open #{DEX_URL.console_bold} in your browser to enable SSL.", ""
 	end
 
 	task :confirm_uninstall => :no_root do
@@ -351,8 +334,35 @@ namespace :daemon do
 	desc "Start dex daemon"
 	task :start => [:no_root, :require_daemon_install] do
 		if launchd_worked(`launchctl load -w #{LAUNCHAGENT_DEST_FILE} 2>&1`)
-			sleep 1
-			puts_y "Started dex daemon"
+
+			msg = "Starting dex daemon..."
+			print "#{msg}\r"
+
+			i = 0
+
+			# Max wait time in seconds (takes about 12 on my rMBP)
+			maxWaitTime = 20
+			fps = 2
+
+			# TODO: Hide the cursor, maybe with curses?
+			# http://rosettacode.org/wiki/Terminal_control/Hiding_the_cursor#Ruby
+
+			until dex_running()
+				break if (i += 1) >= (maxWaitTime * fps)
+				# msg += "."
+				print "#{"+x"[i % 2]} #{msg}\r"
+				sleep (1.0 / fps)
+			end
+
+			# Clear old line
+			print "#{" " * (msg.length + 4)}\r"
+
+			if dex_running()
+				puts_y "Started dex daemon"
+			else
+				puts_n "Attempt to start dex daemon failed"
+			end
+
 		end
 	end
 
