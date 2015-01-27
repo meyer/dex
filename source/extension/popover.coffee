@@ -1,5 +1,4 @@
 loadModuleListForURL = (url) ->
-
 	unless hostname = utils.getValidHostname(url)
 		console.error "loadModuleListForURL cannot continue: URL is invalid (#{url})"
 		return

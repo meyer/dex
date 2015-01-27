@@ -1,6 +1,6 @@
 window.utils =
 	getValidHostname: (url) ->
-		return false unless url? and url != ""
+		return false unless url? and url isnt ""
 
 		a = document.createElement("a")
 		a.href = url
@@ -22,14 +22,18 @@ window.utils =
 		xhr.open "GET", url, true
 
 		xhr.onreadystatechange = ->
-			if xhr.readyState == 4 && xhr.status == 200
-				try
-					responseJSON = JSON.parse xhr.responseText
-					callback?(responseJSON)
-				catch caughtError
-					console.error "Error parsing response JSON"
-					console.error "xhr.responseText is blank" if xhr.responseText == ""
-					console.info caughtError
-					callback?({}, caughtError)
+			if xhr.readyState == 4
+				if xhr.status == 200
+					try
+						console.log "TXT for (#{url})", xhr.responseText
+						responseJSON = JSON.parse xhr.responseText
+						callback?(responseJSON)
+					catch error
+						console.error "Error parsing response JSON"
+						console.error "xhr.responseText is blank" if xhr.responseText == ""
+						console.info error
+						callback?({}, error)
+				else
+					callback?({}, "Error: status code 200 expected, received #{xhr.status}")
 
 		xhr.send()
