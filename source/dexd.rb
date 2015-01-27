@@ -267,7 +267,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 						if ext == "js"
 							body << "\nconsole.group('#{file}');\n"
 						else
-							body << "/* @start #{file} */"
+							body << "\n/* @start #{file} */\n"
 						end
 
 						body << IO.read(file)
@@ -275,7 +275,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 						if ext == "js"
 							body << "\nconsole.groupEnd();\n"
 						else
-							body << "/* @end #{file} */"
+							body << "\n/* @end #{file} */\n"
 						end
 					end
 				end
