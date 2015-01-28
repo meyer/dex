@@ -74,7 +74,7 @@ load "utils/helpers.rb"
 load "utils/build.rb"
 
 def dex_running()
-	return system("curl -k #{DEX_URL} &> /dev/null")
+	return system("curl -I --ipv4 --referer nope #{DEX_URL}/is-this-thing-on &> /dev/null")
 end
 
 def a_to_s(*a_or_s)
