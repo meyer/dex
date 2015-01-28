@@ -15,7 +15,9 @@ window.utils =
 			console.error "Hostname `#{a.hostname}` is invalid"
 			false
 
-		else a.hostname
+		else
+			# Clean up that hostname
+			a.hostname.replace(/^ww[w\d]\./, "")
 
 	getJSON: (url, callback) ->
 		xhr = new XMLHttpRequest()
@@ -25,7 +27,6 @@ window.utils =
 			if xhr.readyState == 4
 				if xhr.status == 200
 					try
-						console.log "TXT for (#{url})", xhr.responseText
 						responseJSON = JSON.parse xhr.responseText
 						callback?(responseJSON)
 					catch error

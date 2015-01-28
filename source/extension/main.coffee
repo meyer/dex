@@ -1,8 +1,10 @@
-dexURL = "<%= DEX_URL %>/"
-
-# TODO: Conditionally support iframes
 if window.self isnt window.top
-	console.log "iframe, total area: #{(window.self.innerWidth+1) * (window.self.innerHeight+1)}px"
+	console.groupCollapsed("Ignoring iframe: #{window.self.location.hostname}")
+	console.log window.self.location.href
+	console.groupEnd()
+	return
+
+dexURL = "<%= DEX_URL %>/"
 
 dexJS = document.createElement "script"
 
