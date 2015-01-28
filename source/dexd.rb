@@ -148,29 +148,31 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 				# Get all available modules
 				Dir.glob("./{global,utilities,*.*}/*/").each do |k|
-					k = k[2...-1]
-					metadata[k] = {
+					category, title = k[2...k.length].split("/")
+
+					metadata["#{category}/#{title}"] = {
 						"Author" => nil,
 						"Description" => nil,
 						"URL" => nil,
-						"Title" => k.rpartition("/")[2]
+						"Title" => title,
+						"Category" => category
 					}
 				end
 
 				# Replace lame data with nifty metadata
-				Dir.glob("./{global,utilities,*.*}/*/info.yaml").each do |y|
-					k = y[2...-10]
+				Dir.glob("./{global,utilities,*.*}/*/info.yaml").each do |k|
+					category, title = k[2...k.length].split("/")
 
 					# Load key-value YAML file
-					YAML::load_file(y).each do |ik,iv|
-						case ik
-						when "Title"
-							puts "Ignoring Title metadata"
+					YAML::load_file(k).each do |info_key,info_val|
+						case info_key
+						when "Title", "Category"
+							puts "Ignoring `#{info_key}` metadata"
 						else
-							if iv.class == String
-								metadata[k][ik] = CGI::escapeHTML(iv).markitdown
+							if info_val.class == String
+								metadata["#{category}/#{title}"][info_key] = CGI::escapeHTML(info_val).markitdown
 							else
-								metadata[k][ik] = iv
+								metadata["#{category}/#{title}"][info_key] = info_val
 							end
 						end
 					end
@@ -262,15 +264,18 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 					load_me.unshift *Dir.glob("./{global,#{url}}/*.js") if ext == "js"
 
 					load_me.each do |file|
+						file = file[2...file.length]
 						body_prefix << "[+] #{file}"
 
+						g, m, f = file.split("/", 3)
+
 						if ext == "js"
-							body << "\nconsole.group('#{file}');\n"
+							body << "\nconsole.group('#{m} (#{g})');\n"
 						else
 							body << "\n/* @start #{file} */\n"
 						end
 
-						body << IO.read(file)
+						body << IO.read("./#{file}")
 
 						if ext == "js"
 							body << "\nconsole.groupEnd();\n"
