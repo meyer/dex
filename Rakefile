@@ -112,6 +112,33 @@ def launchd_worked(launch_output)
 	return true
 end
 
+def wait_for_dex(maxWaitTime=20)
+	msg = "Starting dex daemon..."
+	print "#{msg}\r"
+
+	i = 0
+	fps = 2
+
+	# TODO: Hide the cursor, maybe with curses?
+	# http://rosettacode.org/wiki/Terminal_control/Hiding_the_cursor#Ruby
+
+	until dex_running()
+		break if (i += 1) >= (maxWaitTime * fps)
+		# msg += "."
+		print "#{"+x"[i % 2]} #{msg}\r"
+		sleep (1.0 / fps)
+	end
+
+	# Clear old line
+	print "#{" " * (msg.length + 4)}\r"
+
+	if dex_running()
+		puts_y "Started dex daemon"
+	else
+		puts_n "Attempt to start dex daemon failed"
+	end
+end
+
 # Gross.
 task :default do
 	system "rake -T"
@@ -122,7 +149,9 @@ task :dev => ["extension:build_dev", "daemon:build"]
 
 desc "Compile and run the latest daemon"
 task :runserver => ["daemon:stop", :dev] do
-	system "ruby build/dexd.rb --verbose 2>/dev/null"
+	pid = Process.spawn "ruby build/dexd.rb --verbose 2>/dev/null"
+	wait_for_dex()
+	Process.wait(pid)
 end
 
 namespace :daemon do
@@ -334,35 +363,7 @@ namespace :daemon do
 	desc "Start dex daemon"
 	task :start => [:no_root, :require_daemon_install] do
 		if launchd_worked(`launchctl load -w #{LAUNCHAGENT_DEST_FILE} 2>&1`)
-
-			msg = "Starting dex daemon..."
-			print "#{msg}\r"
-
-			i = 0
-
-			# Max wait time in seconds (takes about 12 on my rMBP)
-			maxWaitTime = 20
-			fps = 2
-
-			# TODO: Hide the cursor, maybe with curses?
-			# http://rosettacode.org/wiki/Terminal_control/Hiding_the_cursor#Ruby
-
-			until dex_running()
-				break if (i += 1) >= (maxWaitTime * fps)
-				# msg += "."
-				print "#{"+x"[i % 2]} #{msg}\r"
-				sleep (1.0 / fps)
-			end
-
-			# Clear old line
-			print "#{" " * (msg.length + 4)}\r"
-
-			if dex_running()
-				puts_y "Started dex daemon"
-			else
-				puts_n "Attempt to start dex daemon failed"
-			end
-
+			wait_for_dex()
 		end
 	end
 
