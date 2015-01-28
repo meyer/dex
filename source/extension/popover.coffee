@@ -26,6 +26,8 @@ loadModuleListForURL = (url) ->
 
 if window.safari?.application?
 	loadModuleListForURL safari.application.activeBrowserWindow.activeTab.url
+	# TODO: Fix this.
+	# safari.self.height = document.body.height
 
 else if window.chrome?.tabs?
 	chrome.tabs.getSelected null, (tab) ->

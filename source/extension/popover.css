@@ -1,13 +1,16 @@
 /* @override http://localhost:8080/popover.css */
 
 html, body{
-  background-color: #ededed;
+
+}
+
+body, input{
+  font-family: "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: #666;
 }
 
 body{
-  font-family: "Helvetica Neue", Arial, Helvetica, Geneva, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  color: #555;
   min-width: 300px;
 }
 
@@ -26,25 +29,22 @@ li{
   list-style: none;
 }
 
-.modules > ul{
+.modules{
   background-color: #FFF;
   box-shadow:
-    0 0 0 1px rgba(0,0,0,.06),
-    0 1px 2px rgba(0,0,0,.08);
+    inset 0 -10px 0 #FFF,
+    0 0 0 1px rgba(0,0,0,.10),
+    0 1px 2px rgba(0,0,0,.05);
+  border-radius: 5px;
+  margin: 0 10px 10px;
 }
 
-.modules li + li{
+.modules > li{
+    background-color: rgba(0, 0, 0, 0.01);
+}
+
+.modules > li + li{
   border-top: 1px solid #EEE;
-}
-
-h1{
-  padding-left: 10px;
-  padding-right: 10px;
-  font-size: 11px;
-  line-height: 26px;
-  text-transform: uppercase;
-  letter-spacing: 0;
-  /*box-shadow: inset 0 1px 2px rgba(0,0,0,.05);*/
 }
 
 code{
@@ -52,94 +52,293 @@ code{
   background-color: #efefef;
   padding: 2px 4px;
   border-radius: 3px;
-  box-shadow: inset 0 0 0 1px rgba(0,0,0,.02);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.05);
 }
 
-label{
+.modules label{
   font-size: 14px;
-  line-height: 18px;
+  line-height: 20px;
   display: block;
   padding: 8px 10px 8px 50px;
   cursor: pointer;
   -webkit-user-select: none;
 }
 
-#site-modules{
-  /*margin-bottom: 30px;*/
-  background-color: #eaeaea;
+.modules p,
+.modules h2{
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-input{
-  display: none;
+.desc p{
+  color: #666;
 }
 
-div.fancy-switch{
+/* @group Switch input */
+
+.fancy-switch{
   position: absolute;
   top: 0;
   left: 15px;
   bottom: 0;
   margin: auto 0;
-  background: #6cb606;
-  -webkit-appearance: none;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 100%) #8fdc26;
   width: 22px;
   height: 14px;
   border: none;
   outline: none;
-  border-radius: 0;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.1);
-  -webkit-transition: -webkit-transform 120ms ease-in-out 600ms;
 }
 
-div.fancy-switch div{
-  background: #FFF;
+.fancy-switch > div{
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.04) 100%) #FFF;
   height: 12px;
   width: 12px;
   position: absolute;
   right: 1px;
   top: 1px;
   box-shadow:
-    0 1px 2px 1px rgba(0, 0, 0, 0.1),
+    0 1px 2px 1px rgba(0, 0, 0, 0.18),
     0 2px 3px rgba(0, 0, 0, 0.05);
+}
+
+.fancy-switch,
+.fancy-switch > div{
+  border-radius: 14px;
   -webkit-transition: -webkit-transform 120ms ease-in-out;
 }
 
-div.fancy-switch,
-div.fancy-switch div{
-  border-radius: 14px;
+.fancy-switch{
+  -webkit-transition-property: background-color;
+  -webkit-transition-delay: 100ms;
 }
 
-input:checked ~ div.fancy-switch{
-  background-color: #CCC;
+.fancy-switch-input{
+  display: none;
 }
 
-input:checked ~ div.fancy-switch div{
+input:checked + .fancy-switch{
+  background-color: #DDD;
+}
+
+input:checked + .fancy-switch > div{
   -webkit-transform: translate3d(-8px, 0, 0);
 }
 
-h2, p{
-  -webkit-transition: color 320ms ease-in-out;
+/* @end */
+
+h2{
+  font-weight: 500;
 }
 
-p{
-  position: absolute;
-  top: 95%;
-  left: 40px;
-  max-width: 82%;
-  background: #FFF;
-  padding: 6px 10px;
+h2, p{
+  -webkit-transition: opacity 320ms ease-in-out;
+}
+
+h2 em{
+  color: #FFF;
+  font-style: normal;
+  font-size: 10px;
+  text-transform: uppercase;
+  background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.2) 0%,
+      rgba(0, 0, 0, 0) 100%
+    )
+    rgba(0, 0, 0, 0.2);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.33);
+  padding: 2px 4px;
   border-radius: 3px;
   box-shadow:
-    0 1px 2px rgba(0,0,0,.3),
-    0 0 0 1px rgba(0,0,0,.1);
-  display: none;
-  z-index: 100;
+    inset 0 0 0 1px rgba(0,0,0,.1),
+    inset 0 1px 1px 1px rgba(0,0,0,.1);
+  margin-left: 3px;
+  margin-right: 3px;
+  font-weight: 600;
 }
 
-/* TODO: Make this not suck. */
-label:hover p{
-  /*display: block;*/
-}
-
+input:checked ~ p,
 input:checked ~ h2{
-  color: #BBB;
+  opacity: .4;
+}
+
+#create-module{
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  font-size: 14px;
+  background: #FFF;
+  padding: 4px 5px 5px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,.1), 0 0 3px rgba(0,0,0,.2);
+}
+
+#create-module form{
+  height: 30px;
+}
+
+#create-module input,
+#create-module select,
+#create-module button{
+  border-radius: 5px;
+}
+
+#create-module input,
+#create-module select,
+#create-module button,
+#create-module div{
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  -webkit-appearance: none;
+  outline: none;
+  border: none;
+}
+
+#create-module div{
+  left: 103px;
+  line-height: 30px;
+  width: 8px;
+  text-align: center;
+}
+
+#create-module select{
+  left: 0;
+  width: 100px;
+  padding-left: 8px;
+  padding-right: 8px;
+  font-size: 10px;
+  font-weight: bold;
+}
+
+#create-module input{
+  left: 105px;
+  right: 65px;
+  padding: 4px 10px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.1),
+    inset 0 1px 2px rgba(0,0,0,.1);
+}
+
+#create-module input::-webkit-input-placeholder{
+  color: #CCC;
+}
+
+#create-module button{
+  right: 0;
+  width: 60px;
+  background-color: #FFF;
+  font-weight: bold;
+  text-transform: uppercase;
+  font-size: 10px;
+}
+
+#create-module button,
+#create-module select{
+  background-image: linear-gradient(to bottom, white 15.2%, #ededed 100%);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.12);
+}
+
+/* @group Description */
+
+div.desc{
+  overflow: hidden;
+}
+
+div.desc:before,
+div.desc:after{
+  z-index: 1;
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 10px;
+  background: linear-gradient(
+    to right,
+    rgba(255,255,255,1) 0%,
+    rgba(255,255,255,0) 100%);
+  opacity: 0;
+
+  -webkit-transition: opacity 500ms ease-in-out 0ms;
+}
+
+div.desc:after{
+  left: auto;
+  right: 0;
+  background: linear-gradient(
+    to left,
+    rgba(255,255,255,1) 0%,
+    rgba(255,255,255,0) 100%);
+}
+
+div.desc:hover:before,
+div.desc:hover:after{
+  opacity: 1;
+}
+
+div.desc p{
+  /* max-width delay needs to be a bit longer than transform duration */
+  -webkit-transition:
+    max-width 0ms linear 400ms,
+    -webkit-transform 300ms cubic-bezier(0.6, 0, 0.4, 1) 300ms;
+
+  display: inline-block;
+
+  /* This prevents short descriptions from animating */
+  min-width: 100%;
+
+  /* This ensures that we get ellipses on descriptions that exceed vw */
+  max-width: 100%;
+  
+}
+
+div.desc:hover p{
+  width: auto;
+  /* This should be something obscene */
+  max-width: 10000px;
+  -webkit-transition:
+    -webkit-transform 2000ms cubic-bezier(0.25, 0, 0.75, 1) 200ms;
+
+  -webkit-transform: translate3d(calc((100vw - 60px) - 100%), 0, 0);
+}
+
+/* @end */
+
+@-webkit-keyframes 'animationTest' {
+  0%{ -webkit-transform: translate3d(0,0,0) }
+  100%{ -webkit-transform: translate3d(calc(100vw - 100%),0,0) }
+}
+
+.animation-test{
+  z-index: 100;
+  -webkit-animation: animationTest ease-in-out infinite alternate;
+  /*-webkit-animation-duration: 10s;*/
+  position: absolute;
+  left: 0px;
+  top: 50px;
+  box-shadow: 0 0 0 10px;
+  background-color: #F00;
+  height: 100px;
+  width: 200px;
+  border-radius: 50px;
+  text-align: center;
+  line-height: 100px;
+  font-weight: bold;
+  color: #FFF;
+  font-size: 26px;
+}
+
+.animation-test{
+  -webkit-animation-duration: calc( (100px / 10px) * 10ms);
+}
+
+h1{
+  font-size: 16px;
+  padding: 8px 25px;
+  /*border-bottom: 1px solid #ededed;*/
+}
+
+ul + h1{
+  margin-top: 10px;
 }
