@@ -6,57 +6,139 @@
 	<link rel="stylesheet" href="popover.css">
 	<script src="lodash.min.js"></script>
 	<script id="module-list-tpl" type="text/html">
-<ul id="site-modules">
 
+<!-- <div class="animation-test">TEST</div> -->
+
+<h1>Site Modules &bull; <%= hostname %></h1>
+<ul class="site modules">
 <% if(site_available.length > 0) { %>
-	<li class="site modules">
-		<h1><%= hostname %></h1>
-		<ul>
 <% site_available.forEach(function(m){ %>
-			<li>
-				<label>
-					<input data-href="<%= json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~site_enabled.indexOf(m)){ %> checked<% } %>>
-					<div class="fancy-switch"><div></div></div>
+	<li>
+		<label>
+			<input class="fancy-switch-input" data-href="<%= json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~site_enabled.indexOf(m)){ %> checked<% } %>>
 
-					<h2><%= metadata[m]["Title"] %></h2>
-<% if( metadata[m]["Description"] ) { %>
-					<p><%= metadata[m]["Description"] %></p>
-<% } %>
-				</label>
-				</a>
-			</li>
-<% }); %>
-		</ul>
-	</li>
+			<div class="fancy-switch"><div></div></div>
+
+			<h2>
+				<%= metadata[m]["Title"] %>
+<%
+if( metadata[m]["Category"]){
+if(metadata[m]["Category"] == hostname) {
+%>
+					<!-- <em>site-specific</em> -->
+<% } else if(metadata[m]["Category"] == "utilities" ) { %>
+					<em>utility</em>
 <% } else { %>
-	<li class="empty site modules"><h2>No site-specific modules for <%= m %></h2></li>
-<% } %>
-
-<% if(global_available.length > 0) { %>
-	<li class="global modules">
-		<h1>Everything</h1>
-		<ul>
-<% global_available.forEach(function(m){ %>
-			<li>
-				<label>
-					<input data-href="<%= json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~global_enabled.indexOf(m)){ %> checked<% } %>>
-					<div class="fancy-switch"><div></div></div>
-
-					<h2><%= metadata[m]["Title"] %></h2>
+					<!-- <em><%= metadata[m]["Category"] %></em> -->
+<%
+}
+}
+%>
+			</h2>
+<!--
 <% if( metadata[m]["Description"] ) { %>
-					<p><%= metadata[m]["Description"] %></p>
+			<div class="desc"><p><%= metadata[m]["Description"] %></p></div>
 <% } %>
-				</label>
-				</a>
-			</li>
-<% }); %>
-		</ul>
+-->
+		</label>
+		</a>
 	</li>
-<% } else { %>
-	<li class="empty global modules"><h2>No global modules for <%= m %></h2></li>
-<% } %>
+<% }); %>
 
+<% } else { %>
+	<li>
+		<label>
+			<p>No site-specific modules</p>
+		</label>
+	</li>
+<% } %>
 </ul>
+
+<h1>Global Modules</h1>
+<ul class="global modules">
+<% if(global_available.length > 0) { %>
+<% global_available.forEach(function(m){ %>
+	<li class="<%= metadata[m]["Category"] %>">
+		<label>
+			<input class="fancy-switch-input" data-href="<%= json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~global_enabled.indexOf(m)){ %> checked<% } %>>
+
+			<div class="fancy-switch"><div></div></div>
+
+			<h2>
+				<%= metadata[m]["Title"] %>
+<!--
+<%
+if( metadata[m]["Category"]){
+if(metadata[m]["Category"] == hostname) {
+%>
+					<em>site-specific</em>
+<% } else if(metadata[m]["Category"] == "utilities" ) { %>
+					<em>utility</em>
+<% } else { %>
+					<em><%= metadata[m]["Category"] %></em>
+<%
+}
+}
+%>
+-->
+			</h2>
+<!--
+<% if( metadata[m]["Description"] ) { %>
+			<div class="desc"><p><%= metadata[m]["Description"] %></p></div>
+<% } %>
+-->
+		</label>
+		</a>
+	</li>
+<% }); %>
+
+<% } else { %>
+<!--
+	<li<% if(global_available.length == 0) { %> class="empty"<% } %>>
+		<label>
+			<p>No global modules</p>
+		</label>
+	</li>
+-->
+<% } %>
+</ul>
+<!--
+<div id="create-module">
+	<form action="#" method="get">
+		<select size="1">
+			<option disabled selected>Module Type…</option>
+			<option value="global">Global Module</option>
+			<option value="<%= hostname %>">Site-Specific</option>
+			<option value="utilities">Utility</option>
+		</select>
+
+		<input type="text" name="some_name" placeholder="Module Name" value="" id="some_name" />
+
+		<button>Add</button>
+	</form>
+</div>
+-->
+<!--
+<div id="create-module-modal">
+	<form action="" method="post">
+		<label for="">
+			<select name="module_type" id="module_type" size="1">
+				<option disabled selected>Module Type…</option>
+				<option value="global">Global Module</option>
+				<option value="<%= hostname %>">Site-Specific</option>
+				<option value="utility">Utility</option>
+			</select>
+		</label>
+		<label for="module_name">
+			<input type="text" name="module_name" placeholder="Module Name" id="module_name" />
+		</label>
+
+		<button type="submit">Add Module</button>
+	</form>
+</div>
+-->
+
+
 	</script>
 	<script src="utils.js"></script>
 	<script src="popover.js"></script>
