@@ -181,15 +181,20 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 				if request["Referer"]
 					ref = URI(request["Referer"])
-					if ["localhost", "dexfiles.org"].include? ref.host
+					if ref.host == "localhost"
 						response["Access-Control-Allow-Origin"] = URI.join(ref, "/").to_s[0...-1]
-						puts "Access-Control-Allow-Origin = #{response["Access-Control-Allow-Origin"]}"
 					end
 				end
 
 				toggle = request.query["toggle"].to_s.encode('utf-8')
 
-				if toggle and available["all"].include?(toggle)
+				if toggle && toggle != ""
+
+					unless available["all"].include?(toggle)
+						puts "Module `#{toggle}` does not exist"
+						response.status = 404
+						return
+					end
 
 					scope = available["global"].include?(toggle) ? "global" : "site"
 
