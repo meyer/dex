@@ -5,6 +5,16 @@
 	<title>Dex</title>
 	<link rel="stylesheet" href="popover.css">
 	<script src="lodash.min.js"></script>
+
+	<script id="module-list-empty" type="text/html">
+
+<div id="empty-page">
+	<h1>Invalid URL</h1>
+	<p>Dex is disabled on anything but HTTP and HTTPS&nbsp;pages.</p>
+</div>
+
+	</script>
+
 	<script id="module-list-tpl" type="text/html">
 
 <!-- <div class="animation-test">TEST</div> -->
@@ -15,7 +25,7 @@
 <% site_available.forEach(function(m){ %>
 	<li>
 		<label>
-			<input class="fancy-switch-input" data-href="<%= json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~site_enabled.indexOf(m)){ %> checked<% } %>>
+			<input class="fancy-switch-input" data-module="<%= m %>" type="checkbox"<% if(!~site_enabled.indexOf(m)){ %> checked<% } %>>
 
 			<div class="fancy-switch"><div></div></div>
 
@@ -60,7 +70,7 @@ if(metadata[m]["Category"] == hostname) {
 <% global_available.forEach(function(m){ %>
 	<li class="<%= metadata[m]["Category"] %>">
 		<label>
-			<input class="fancy-switch-input" data-href="<%= json_url %>?toggle=<%= m %>" type="checkbox"<% if(!~global_enabled.indexOf(m)){ %> checked<% } %>>
+			<input class="fancy-switch-input" data-module="<%= m %>" type="checkbox"<% if(!~global_enabled.indexOf(m)){ %> checked<% } %>>
 
 			<div class="fancy-switch"><div></div></div>
 
