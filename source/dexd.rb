@@ -76,7 +76,8 @@ end
 
 class DexServer < WEBrick::HTTPServlet::AbstractServlet
 	def do_GET(request, response)
-		puts "#{Time.now}: #{request.path}"
+		puts "#{Time.now.strftime "%H:%M:%S"} - #{request.request_method} #{request.unparsed_uri}"
+
 		begin
 			config = YAML::load_file(DEX_CONFIG) || {}
 			# Normalise config file
@@ -117,7 +118,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
 			unless url = validate_url($~["url"])
 				response.body = "URL `#{$~["url"]}` is invalid"
-				puts response.body
 				response.status = 403
 				return
 			end
@@ -185,8 +185,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 						response["Access-Control-Allow-Origin"] = URI.join(ref, "/").to_s[0...-1]
 						puts "Access-Control-Allow-Origin = #{response["Access-Control-Allow-Origin"]}"
 					end
-				else
-					puts 'request["Referer"] was not set'
 				end
 
 				toggle = request.query["toggle"].to_s.encode('utf-8')

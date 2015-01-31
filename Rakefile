@@ -118,13 +118,12 @@ def wait_for_dex(maxWaitTime=20)
 
 	i = 0
 	fps = 2
+	success = false
 
 	# TODO: Hide the cursor, maybe with curses?
 	# http://rosettacode.org/wiki/Terminal_control/Hiding_the_cursor#Ruby
-
-	until dex_running()
+	until success = dex_running()
 		break if (i += 1) >= (maxWaitTime * fps)
-		# msg += "."
 		print "#{"+x"[i % 2]} #{msg}\r"
 		sleep (1.0 / fps)
 	end
@@ -132,7 +131,7 @@ def wait_for_dex(maxWaitTime=20)
 	# Clear old line
 	print "#{" " * (msg.length + 4)}\r"
 
-	if dex_running()
+	if success
 		puts_y "Started dex daemon"
 	else
 		puts_n "Attempt to start dex daemon failed"
@@ -273,11 +272,8 @@ namespace :daemon do
 	end
 
 	task :link_daemon => [:quick_uninstall, :rebuild_files] do
-		# Copy latest launchagent.xml
 		cp LAUNCHAGENT_SRC_FILE, LAUNCHAGENT_DEST_FILE, :preserve => true
-		# Link daemon from TEMP_DIR
 		ln_s File.expand_path(DAEMON_SRC_FILE), DAEMON_DEST_FILE
-		# Make sure daemon is executable
 		chmod 0755, DAEMON_SRC_FILE
 		puts_y "Linked dex daemon"
 	end

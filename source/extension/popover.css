@@ -1,7 +1,12 @@
 /* @override http://localhost:8080/popover.css */
 
-html, body{
-
+html{
+  min-height: 100%;
+  background-image: linear-gradient(
+    to bottom,
+    #ffffff 0%,
+    #efefef 100%
+  );
 }
 
 body, input{
@@ -341,4 +346,19 @@ h1{
 
 ul + h1{
   margin-top: 10px;
+}
+
+#empty-page{
+  padding: 20px;
+}
+
+#empty-page h1,
+#empty-page p{
+  padding: 0;
+  font-size: 18px;
+  line-height: 22px;
+}
+
+#empty-page h1{
+  margin: 0 0 6px;
 }
