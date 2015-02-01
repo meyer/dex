@@ -12,7 +12,7 @@ It’s a two-part system—a tiny li’l webrick server that runs on port 3131 a
 		cd dex
 		rake
 
-	That’ll install the `dex` server to `/usr/local/bin` and set it to automatically start when your computer boots up.
+	That’ll install the `dexd` daemon to `/usr/local/bin` and set it to automatically start when your computer boots up.
 
 	Once the daemon is installed, you can delete the downloaded Dex directory.
 
