@@ -1,6 +1,7 @@
-/* @override http://localhost:8080/popover.css */
+/* @override http://localhost:8080/dex.safariextension/popover.css */
 
 html{
+  font-size: 62.5%;
   min-height: 100%;
   background-image: linear-gradient(
     to bottom,
@@ -15,8 +16,8 @@ body, input{
   color: #666;
 }
 
-body{
-  min-width: 300px;
+body:not(.demotron){
+  width: 350px;
 }
 
 *{
@@ -39,17 +40,18 @@ li{
   box-shadow:
     inset 0 -10px 0 #FFF,
     0 0 0 1px rgba(0,0,0,.10),
-    0 1px 2px rgba(0,0,0,.05);
+    0 1px 2px rgba(0,0,0,.15);
   border-radius: 5px;
-  margin: 0 10px 10px;
+  margin: 10px;
 }
 
 .modules > li{
-    background-color: rgba(0, 0, 0, 0.01);
+  background-color: rgba(0, 0, 0, 0.01);
 }
 
 .modules > li + li{
-  border-top: 1px solid #EEE;
+  border-top: 1px solid rgba(0,0,0,0.07);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,1);
 }
 
 code{
@@ -61,23 +63,24 @@ code{
 }
 
 .modules label{
-  font-size: 14px;
-  line-height: 20px;
   display: block;
-  padding: 8px 10px 8px 50px;
+  padding: 0.8rem 10px 0.8rem 50px;
   cursor: pointer;
   -webkit-user-select: none;
 }
 
-.modules p,
+label .guts{
+  /* Oddly enough I only need this for Chrome. */
+  height: 2rem;
+}
+
 .modules h2{
+  font-size: 1.4rem;
+  line-height: 2rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.desc p{
-  color: #666;
+  /*background: #F00;*/
 }
 
 /* @group Switch input */
@@ -90,7 +93,7 @@ code{
   margin: auto 0;
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0.2) 0%, rgba(0, 0, 0, 0) 100%) #8fdc26;
   width: 22px;
-  height: 14px;
+  height: 1.4rem;
   border: none;
   outline: none;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,.1);
@@ -98,11 +101,11 @@ code{
 
 .fancy-switch > div{
   background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 30%, rgba(0, 0, 0, 0.04) 100%) #FFF;
-  height: 12px;
   width: 12px;
   position: absolute;
   right: 1px;
   top: 1px;
+  bottom: 1px;
   box-shadow:
     0 1px 2px 1px rgba(0, 0, 0, 0.18),
     0 2px 3px rgba(0, 0, 0, 0.05);
@@ -144,7 +147,7 @@ h2, p{
 h2 em{
   color: #FFF;
   font-style: normal;
-  font-size: 10px;
+  font-size: 1.0rem;
   text-transform: uppercase;
   background: linear-gradient(
       to bottom,
@@ -153,7 +156,7 @@ h2 em{
     )
     rgba(0, 0, 0, 0.2);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.33);
-  padding: 2px 4px;
+  padding: 0.2rem 0.4rem;
   border-radius: 3px;
   box-shadow:
     inset 0 0 0 1px rgba(0,0,0,.1),
@@ -163,8 +166,15 @@ h2 em{
   font-weight: 600;
 }
 
-input:checked ~ p,
-input:checked ~ h2{
+div.guts{
+  overflow: hidden;
+  padding-left: 10px;
+  padding-right: 10px;
+  margin-left: -10px;
+  margin-right: -10px;
+}
+
+input:checked ~ div.guts{
   opacity: .4;
 }
 
@@ -173,7 +183,7 @@ input:checked ~ h2{
   left: 0;
   right: 0;
   bottom: 0;
-  font-size: 14px;
+  font-size: 1.4rem;
   background: #FFF;
   padding: 4px 5px 5px;
   box-shadow: 0 0 0 1px rgba(0,0,0,.1), 0 0 3px rgba(0,0,0,.2);
@@ -213,7 +223,7 @@ input:checked ~ h2{
   width: 100px;
   padding-left: 8px;
   padding-right: 8px;
-  font-size: 10px;
+  font-size: 1.0rem;
   font-weight: bold;
 }
 
@@ -235,7 +245,7 @@ input:checked ~ h2{
   background-color: #FFF;
   font-weight: bold;
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: 1.0rem;
 }
 
 #create-module button,
@@ -250,42 +260,38 @@ div.desc{
   overflow: hidden;
 }
 
-div.desc:before,
-div.desc:after{
+.guts:before,
+.guts:after{
   z-index: 1;
   content: "";
   position: absolute;
   left: 0;
   top: 0;
   height: 100%;
-  width: 10px;
+  width: 12px;
   background: linear-gradient(
     to right,
-    rgba(255,255,255,1) 0%,
+    rgba(255,255,255,1) 60%,
     rgba(255,255,255,0) 100%);
-  opacity: 0;
+  opacity: 1;
 
   -webkit-transition: opacity 500ms ease-in-out 0ms;
 }
 
-div.desc:after{
+.guts:after{
   left: auto;
   right: 0;
+  width: 13px;
   background: linear-gradient(
     to left,
-    rgba(255,255,255,1) 0%,
+    rgba(255,255,255,1) 40%,
     rgba(255,255,255,0) 100%);
 }
 
-div.desc:hover:before,
-div.desc:hover:after{
-  opacity: 1;
-}
-
-div.desc p{
+h2{
   /* max-width delay needs to be a bit longer than transform duration */
   -webkit-transition:
-    max-width 0ms linear 400ms,
+    max-width 0ms linear 500ms,
     -webkit-transform 300ms cubic-bezier(0.6, 0, 0.4, 1) 300ms;
 
   display: inline-block;
@@ -298,14 +304,14 @@ div.desc p{
   
 }
 
-div.desc:hover p{
+label:hover h2{
   width: auto;
   /* This should be something obscene */
   max-width: 10000px;
   -webkit-transition:
     -webkit-transform 2000ms cubic-bezier(0.25, 0, 0.75, 1) 200ms;
 
-  -webkit-transform: translate3d(calc((100vw - 60px) - 100%), 0, 0);
+  -webkit-transform: translate3d(calc((100vw - 80px) - 100%), 0, 0);
 }
 
 /* @end */
@@ -338,14 +344,18 @@ div.desc:hover p{
   -webkit-animation-duration: calc( (100px / 10px) * 10ms);
 }
 
-h1{
-  font-size: 16px;
-  padding: 8px 25px;
-  /*border-bottom: 1px solid #ededed;*/
+ul + h1{
+  margin-top: 20px;
 }
 
-ul + h1{
-  margin-top: 10px;
+h1{
+  font-size: 1.6rem;
+  line-height: 1.6rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 25px;
+  margin: 10px 0;
 }
 
 #empty-page{
@@ -355,8 +365,8 @@ ul + h1{
 #empty-page h1,
 #empty-page p{
   padding: 0;
-  font-size: 18px;
-  line-height: 22px;
+  font-size: 1.8rem;
+  line-height: 2.2rem;
 }
 
 #empty-page h1{

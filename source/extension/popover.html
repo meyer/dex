@@ -19,7 +19,7 @@
 
 <!-- <div class="animation-test">TEST</div> -->
 
-<h1><%= hostname %></h1>
+<!-- <h1><%= hostname %></h1> -->
 <ul class="site modules">
 <% if(site_available.length > 0) { %>
 <% site_available.forEach(function(m){ %>
@@ -29,22 +29,24 @@
 
 			<div class="fancy-switch"><div></div></div>
 
+			<div class="guts">
 			<h2>
 				<%= metadata[m]["Title"] %>
 <%
 if( metadata[m]["Category"]){
 if(metadata[m]["Category"] == hostname) {
 %>
-					<!-- <em>site-specific</em> -->
+				<!-- <em>site-specific</em> -->
 <% } else if(metadata[m]["Category"] == "utilities" ) { %>
-					<em>utility</em>
+				<em>utility</em>
 <% } else { %>
-					<!-- <em><%= metadata[m]["Category"] %></em> -->
+				<!-- <em><%= metadata[m]["Category"] %></em> -->
 <%
 }
 }
 %>
 			</h2>
+			</div>
 <!--
 <% if( metadata[m]["Description"] ) { %>
 			<div class="desc"><p><%= metadata[m]["Description"] %></p></div>
@@ -74,24 +76,24 @@ if(metadata[m]["Category"] == hostname) {
 
 			<div class="fancy-switch"><div></div></div>
 
+			<div class="guts">
 			<h2>
 				<%= metadata[m]["Title"] %>
-<!--
 <%
 if( metadata[m]["Category"]){
 if(metadata[m]["Category"] == hostname) {
 %>
-					<em>site-specific</em>
+				<!-- <em>site-specific</em> -->
 <% } else if(metadata[m]["Category"] == "utilities" ) { %>
-					<em>utility</em>
+				<em>utility</em>
 <% } else { %>
-					<em><%= metadata[m]["Category"] %></em>
+				<!-- <em><%= metadata[m]["Category"] %></em> -->
 <%
 }
 }
 %>
--->
 			</h2>
+			</div>
 <!--
 <% if( metadata[m]["Description"] ) { %>
 			<div class="desc"><p><%= metadata[m]["Description"] %></p></div>

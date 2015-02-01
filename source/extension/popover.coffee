@@ -13,6 +13,9 @@ else if window.chrome?.tabs?
 
 else
 	console.info "INIT DEMOTRON"
+	document.addEventListener "DOMContentLoaded", (e) ->
+		document.body.classList.add "demotron"
+
 	if window.location.hash == ""
 		dexutils.loadModuleListForURL "http://dribbble.com"
 	else
