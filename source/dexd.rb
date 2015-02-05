@@ -163,8 +163,15 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 				Dir.glob("./{global,utilities,*.*}/*/info.yaml").each do |k|
 					category, title = k[2...k.length].split("/")
 
+					info_file = YAML::load_file(k)
+
+					unless info_file
+						puts "Blank info file: `#{k}`"
+						next
+					end
+
 					# Load key-value YAML file
-					YAML::load_file(k).each do |info_key,info_val|
+					info_file.each do |info_key, info_val|
 						case info_key
 						when "Title", "Category"
 							puts "Ignoring `#{info_key}` metadata"
