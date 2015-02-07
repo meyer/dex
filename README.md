@@ -1,22 +1,28 @@
 # Meet Dex.
 
-Dex is tool that allows you to load custom JS and CSS on a per-site basis.
+**Dex** is tool that allows you to modify websites with some CSS and JavaScript.
 
-It’s a two-part system—a tiny li’l webrick server that runs on port 3131 and serves JS and CSS files from `~/.dex`, and a browser extension that loads those files into Your Browser of Choice (assuming that you chose Chrome or Safari).
+It’s a two-part system:
+
+1. A node-powered **daemon** that serves the CSS and JS files.
+2. A **browser extension** for Chrome and Safari that loads those files into your browser.
+
+This is the source code for the browser extension.
 
 ## Getting Started: Installation
 
-1. Clone the `dex` repository to somewhere sensible and install the daemon.
+1. The Dex daemon can be installed through **NPM**. NPM stands for Node Package Manager, and it’s a key part of **node**. You can download and install **node** over at the [official NodeJS website][install node].
 
-		git clone --recursive https://github.com/meyer/dex.git
-		cd dex
-		rake
+	Once node is installed, you’ll have access to NPM. Install dex:
 
-	That’ll install the `dexd` daemon to `/usr/local/bin` and set it to automatically start when your computer boots up.
+		npm install -g dex
+		dex wiz
 
-	Once the daemon is installed, you can delete the downloaded Dex directory.
+	That last line will run a wizard that’ll ask you a few questions. The default settings are in brackets. If you hit Enter, that default will be used.
 
-2. Install the browser extension in Your Cool Browser.
+	Once the dex wizard has done its thing, the `dex` daemon should be up and running. The daemon will automatically start when your computer boots up.
+
+2. Install the Dex browser extension:
 	* **Safari**: [Download the Safari extension][safariextz] and double-click
 		it to install.
 	* **Chrome**: Install the extension at the [official extension page][crx].
@@ -28,7 +34,7 @@ It’s a two-part system—a tiny li’l webrick server that runs on port 3131 a
 
 Every time you visit a URL, the Dex browser extension loads one special CSS file and one special JS file for that specific domain. These two files are specifically built based on *modules* that you have enabled in the Dex extension popover.
 
-What is a *module*? It’s a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task. Modules live in subfolders inside a folder called `.dex` in your home directory (`/Users/your-username/`, also known as `~`). Modules can be placed in three different types of subfolders, depending on what the scope of the module should be. Here’s the breakdown:
+What is a *module*? It’s a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task. Modules live in subfolders inside a folder of your choosing. By default, that folder is called `Dex`, and it’s in your home directory (`/Users/your-username/`, also known as `~`). Modules can be placed in three different types of subfolders, depending on what the scope of the module should be. Here’s the breakdown:
 
 1. If you want to modify *one particular site*, you’ll want to place the module in a *site-specific folder*. Site-specific folders are URL-named folders (`~/.dex/github.com/`, `~/.dex/google.com/`, etc.). Enabled site-specific modules are only loaded for the exact matching URL. Subdomains of URLs are treated as separate URLs and can be configured independently of the parent URL, but they have access to all the parent URL’s modules. This is especially useful when dealing with beta subdomains.
 
@@ -73,6 +79,7 @@ Got a problem or a suggestion? Here’s how to get ahold of me, in preferred ord
 2. Send me an email: [email][]
 999. Bug me on Twitter: [@meyer][]
 
+[install node]: http://nodejs.org/download/
 [crx]: https://chrome.google.com/webstore/detail/dex/djkimknbcjbgnocjbbmliklifoflmfah
 [safariextz]: https://github.com/meyer/dex/raw/master/extensions/dex-1.0.1.safariextz
 [dexurl]: https://localhost:3131
