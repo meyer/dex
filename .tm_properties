@@ -1,6 +1,6 @@
 # excludeInFileChooser = "{.build,node_modules,*.esproj}"
 # excludeInBrowser = "{.build,node_modules,*.esproj}"
-exclude = "{$exclude,build,*.esproj, *.psd,*.zip}"
+exclude = "{$exclude,extensions,build,*.esproj,*.psd,*.zip}"
 include = "{$include,.ruby-version}"
 
 tabSize = 4
