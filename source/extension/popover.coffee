@@ -1,10 +1,5 @@
 if window.safari?.application?
 	dexutils.loadModuleListForURL safari.application.activeBrowserWindow.activeTab.url
-	# TODO: Fix this.
-	document.addEventListener "DOMContentLoaded", (e) ->
-		console.log "DOMContentLoaded test"
-		console.log "Body height: #{document.body.clientHeight}"
-		safari.self.height = document.body.clientHeight
 
 else if window.chrome?.tabs?
 	chrome.tabs.getSelected null, (tab) ->

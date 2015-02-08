@@ -1,9 +1,18 @@
-# excludeInFileChooser = "{.build,node_modules,*.esproj}"
-# excludeInBrowser = "{.build,node_modules,*.esproj}"
-exclude = "{$exclude,extensions,build,*.esproj,*.psd,*.zip}"
-include = "{$include,.ruby-version}"
+# Hidden from command-T
+excludeInFileChooser = "{$excludeInFileChooser,build}"
+
+# Hidden in sidebar
+excludeInBrowser = "{$excludeInBrowser,build}"
+excludeInBrowser = "{$excludeInBrowser,*.psd,*.zip}"
+
+# Hidden from search
+excludeInFolderSearch = "{$excludeInFolderSearch,build}"
+
+# Hidden everywhere
+exclude = "{$exclude,extensions}"
+exclude = "{$exclude,*.psd,*.zip}"
+
+# include = "{$include}"
 
 tabSize = 4
-
-[source.ruby, source.coffee, text.html]
 softTabs = false

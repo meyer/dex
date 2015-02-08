@@ -54,16 +54,34 @@ def print_y(*msg) print "✔ #{a_to_s msg}".console_green; nap; end
 def puts_n(*msg) puts "✗ #{a_to_s msg}".console_red; nap; end
 def puts_b(*msg) puts "• #{a_to_s msg}"; nap; end
 
+File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
+	f.flock(File::LOCK_EX)
+	@ext_build_number = f.read.to_i
+}
+
+task :update_lodash do
+	if File.exists? `which lodash`.strip
+		puts "Updating..."
+		system "lodash modern -p -o ./source/extension/lodash.min.js"
+	else
+		puts "lodash-cli is not installed!"
+		puts "Fix that problem with 'npm install -g lodash-cli'"
+	end
+end
+
 task :increment_build_number do
+	puts "Incrementing build number"
 	# Stolen from http://www.ruby-doc.org/core-2.0.0/File.html#method-i-flock
 	File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
 		f.flock(File::LOCK_EX)
-		EXT_BUILD_NUMBER = (f.read.to_i + 1)
+		@ext_build_number += 1
 		f.rewind
-		f.write EXT_BUILD_NUMBER
+		f.write @ext_build_number
 		f.flush
 		f.truncate(f.pos)
 	}
 end
 
-task :default => [:increment_build_number, "extension:build_dev"]
+Rake::Task["extension:set_dev_version"].enhance [:increment_build_number]
+
+task :default => ["extension:build_dev"]
