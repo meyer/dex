@@ -55,7 +55,7 @@ chrome.webRequest.onHeadersReceived.addListener(
 
 			switch headerName.toLowerCase()
 				when "content-security-policy"
-					v = info.responseHeaders[header].value.replace(/((?:script|default)-src(?: ['"]self['"])?)/g, "$1 <%= DEX_URL %>")
+					v = info.responseHeaders[header].value.replace(/((?:script|style|default)-src(?: ['"]self['"])?)/g, "$1 <%= DEX_URL %>")
 
 					response.push
 						name: info.responseHeaders[header].name
