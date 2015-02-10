@@ -6,19 +6,18 @@ if window.self isnt window.top
 
 dexURL = "<%= DEX_URL %>/"
 
-dexJS = document.createElement "script"
-
-if window.chrome
-	dexJS.src = chrome.extension.getURL "dex.js"
-else
-	dexJS.src = safari.extension.baseURI + "dex.js"
-
 hostJS = document.createElement "script"
-hostJS.src = dexURL + window.location.hostname + ".js"
-
 hostCSS = document.createElement "link"
+globalJS = document.createElement "script"
+globalCSS = document.createElement "link"
+
 hostCSS.rel = "stylesheet"
+globalCSS.rel = "stylesheet"
+
+hostJS.src = dexURL + window.location.hostname + ".js"
 hostCSS.href = dexURL + window.location.hostname + ".css"
+globalJS.src = dexURL + "global.js"
+globalCSS.href = dexURL + "global.css"
 
 asapLoaded = false
 bodyLoaded = false
@@ -28,13 +27,14 @@ insertDexfiles = (e) ->
 
 	if !asapLoaded && headOrBody = document.head || document.body
 		asapLoaded = true
+		headOrBody.appendChild globalCSS
 		headOrBody.appendChild hostCSS
 
 	if !bodyLoaded && document.body
 		bodyLoaded = true
-		document.body.appendChild dexJS
+		# document.body.appendChild dexJS
+		document.body.appendChild globalJS
 		document.body.appendChild hostJS
-		document.body.appendChild hostCSS.cloneNode()
 
 	if asapLoaded and bodyLoaded
 		this.removeEventListener "DOMNodeInserted", insertDexfiles, false
