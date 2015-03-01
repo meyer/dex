@@ -45,12 +45,12 @@ window.dexutils.getJSON = (url, callback) ->
 
 					callback?(responseJSON)
 				else
-					callback?({}, true)
+					callback?(false, "Error: xhr.status != 200 (#{xhr.status})")
 
 		xhr.send()
 	catch e
 		console.error "Weird XHR error:", e
-		callback?({}, "Error: #{e}")
+		callback?(false, "Error: #{e}")
 
 	return
 
@@ -70,13 +70,15 @@ bodySwap = (guts) ->
 	document.body.innerHTML = tempDiv.innerHTML
 	tempDiv.remove()
 
-window.dexutils.loadModuleListForURL = (url) ->
+window.dexutils.loadModuleListForURL = (url, callback) ->
 	unless hostname = dexutils.getValidHostname(url)
 		console.error "URL is invalid (#{url})"
 
 		loadEmpty = ->
 			emptyTpl = _.template(document.getElementById("module-list-empty").innerHTML)
 			bodySwap emptyTpl {url}
+			callback?(false, "URL is invalid (#{url})")
+			return
 
 		if document.body?
 			loadEmpty()
@@ -90,11 +92,15 @@ window.dexutils.loadModuleListForURL = (url) ->
 
 	dexutils.getJSON jsonURL, (data, error) ->
 		# TODO: Deal with dexd failures
-		return if error?
+		if error?
+			callback?(false, error)
+			return
 
 		data.hostname = hostname
 		bodySwap moduleListTpl data
+		callback?(data)
 
+		# TODO: Move this out of utils
 		document.body.addEventListener "change", (e) ->
 			unless e.target.dataset.module?
 				console.error "Element #{e.target.tagName} is missing data-href attribute"
@@ -108,3 +114,90 @@ window.dexutils.loadModuleListForURL = (url) ->
 					console.error "Expected a two-element array, got something funky instead:", moduleData
 
 	return
+
+
+window.dexutils.sendMessageToBKG = (key, data, callback) ->
+	callback ?= (res) ->
+		console.log "No callback set for dexutils.sendMessageToBKG. Response:", res
+
+	if window.chrome
+		# TODO: Figure out why callback is never called
+		chrome.runtime.sendMessage({key, data}, callback)
+
+	else if window.safari
+		safari.self.tab.dispatchMessage(key, data)
+
+	else
+		console.log "Cannot send message:", {key, data}
+
+window.dexutils.listenForBKGMessage = (key, callback) ->
+	if window.chrome
+		console.log "Watching for BKG messages (key: '#{key}')"
+		chrome.runtime.onMessage.addListener(
+			(res, sender, sendResponse) ->
+				if sender.tab
+					console.log "From content script (key: '#{res.key}', from content script [#{sender.tab.url}])"
+				else
+					console.log "BKG message (key: '#{res.key}', from extension)"
+
+				if res?.key == key
+					callback?(res.data)
+					# sendResponse res.data
+				return
+		)
+
+	else if window.safari
+		safari.self.addEventListener("message", (
+			(e) ->
+				if e.name == key
+					console.log "EVENT: #{e.name} (handled)", e.message
+					callback?(e.message)
+				else
+					console.log "EVENT: #{e.name} (unhandled)", e.message
+		), false)
+
+
+window.dexutils.injectCSS = (tabID = null, code, callback) ->
+	if window.chrome
+		try
+			chrome.tabs.insertCSS(tabID, {code, runAt: "document_start"}, callback)
+		catch e
+			console.error "Error with chrome.tabs.insertCSS:", e
+	else
+		console.log "dexutils.injectCSS is not supported in your browser (yet)"
+
+window.dexutils.injectJS = (tabID = null, code, callback) ->
+	if window.chrome
+		try
+			chrome.tabs.executeScript(tabID, {code, runAt: "document_start"}, callback)
+		catch e
+			console.error "Error with chrome.tabs.executeScript:", e
+	else
+		console.log "dexutils.injectJS is not supported in your browser (yet)"
+
+window.dexutils.getDataForHostname = (hostname, dexData) ->
+	{
+		modulesByHostname
+		moduleData
+		metadata
+	} = dexData
+
+	globalModules = modulesByHostname.enabled["global"]
+
+	unless siteModules = modulesByHostname.enabled[hostname]
+		siteModules = []
+		# console.log "No modules for #{hostname}."
+
+	css = []
+	js = []
+
+	[].concat("global", globalModules, hostname, siteModules).forEach (mod) ->
+		if moduleData[mod]
+			css.push moduleData[mod].css || "/* No CSS data for '#{mod}' */"
+			js.push  moduleData[mod].js  || "/* No JS data for '#{mod}' */"
+		else
+			css.push "/* Error: moduleData['#{mod}'] is not set */"
+			js.push "/* Error: moduleData['#{mod}'] is not set */"
+
+	css: css.join("\n\n")
+	js:  js.join("\n\n")

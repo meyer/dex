@@ -4,39 +4,76 @@ if window.self isnt window.top
 	console.groupEnd()
 	return
 
-dexURL = "<%= DEX_URL %>/"
+validateLocation = ->
+	# Only match http/https
+	if !~["http:", "https:"].indexOf(document.location.protocol)
+		console.error "Only HTTP and HTTPS protocols are supported"
+		false
 
-hostJS = document.createElement "script"
-hostCSS = document.createElement "link"
-globalJS = document.createElement "script"
-globalCSS = document.createElement "link"
+	# Require a dot in the URL
+	else if !~document.location.hostname.indexOf(".")
+		console.error "Hostname `#{document.location.hostname}` is invalid (no dot)"
 
-hostCSS.rel = "stylesheet"
-globalCSS.rel = "stylesheet"
+	# Match everything but IP addresses and .dev URLs
+	else if document.location.hostname.match(/^.+\.(\d+|dev)$/)
+		console.error "Hostname `#{document.location.hostname}` is invalid (ip/dev)"
+		false
 
-hostJS.src = dexURL + window.location.hostname + ".js"
-hostCSS.href = dexURL + window.location.hostname + ".css"
-globalJS.src = dexURL + "global.js"
-globalCSS.href = dexURL + "global.css"
+	else
+		# Clean up that hostname
+		document.location.hostname.replace(/^ww[w\d]\./, "")
 
-asapLoaded = false
-bodyLoaded = false
+chrome.storage.local.get "dexData", (res) ->
+	{
+		modulesByHostname
+		moduleData
+		metadata
+	} = res.dexData
 
-insertDexfiles = (e) ->
-	return unless e.relatedNode.tagName?
+	unless hostname = validateLocation()
+		console.error "Invalid hostname"
+		return
 
-	if !asapLoaded && headOrBody = document.head || document.body
-		asapLoaded = true
-		headOrBody.appendChild globalCSS
-		headOrBody.appendChild hostCSS
+	globalModules = modulesByHostname.enabled["global"]
 
-	if !bodyLoaded && document.body
-		bodyLoaded = true
-		# document.body.appendChild dexJS
-		document.body.appendChild globalJS
-		document.body.appendChild hostJS
+	unless siteModules = modulesByHostname.enabled[hostname]
+		siteModules = []
 
-	if asapLoaded and bodyLoaded
-		this.removeEventListener "DOMNodeInserted", insertDexfiles, false
+	cssFiles = []
+	jsFiles = []
 
-document.addEventListener "DOMNodeInserted", insertDexfiles
+	[].concat("global", globalModules, hostname, siteModules).forEach (mod) ->
+		if moduleData[mod]
+			cssFiles.push moduleData[mod].css || "/* No CSS data for '#{mod}' */"
+			jsFiles.push  moduleData[mod].js  || "/* No JS data for '#{mod}' */"
+		else
+			cssFiles.push "/* Error: moduleData['#{mod}'] is not set */"
+			jsFiles.push "/* Error: moduleData['#{mod}'] is not set */"
+
+	cssEl = document.createElement "style"
+	jsEl = document.createElement "script"
+
+	cssEl.setAttribute("dex-was-here","")
+	jsEl.setAttribute("dex-was-here","")
+
+	cssEl.textContent = cssFiles.join("\n\n")
+	jsEl.textContent  = jsFiles.join("\n\n")
+
+	asapLoaded = false
+	bodyLoaded = false
+
+	insertDexfiles = (e) ->
+		return unless e.relatedNode.tagName?
+
+		if !asapLoaded && headOrBody = document.head || document.body
+			asapLoaded = true
+			headOrBody.appendChild cssEl
+
+		if !bodyLoaded && document.body
+			bodyLoaded = true
+			document.body.appendChild jsEl
+
+		if asapLoaded and bodyLoaded
+			this.removeEventListener "DOMNodeInserted", insertDexfiles, false
+
+	document.addEventListener "DOMNodeInserted", insertDexfiles

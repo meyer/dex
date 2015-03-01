@@ -40,20 +40,6 @@ RakeFileUtils.verbose(false)
 load "utils/helpers.rb"
 load "utils/build.rb"
 
-def a_to_s(*a_or_s)
-	if a_or_s.kind_of?(Array)
-		a_or_s.join("\n")
-	else
-		a_or_s
-	end
-end
-
-def nap; sleep(0.04); end
-def puts_y(*msg) puts "✔ #{a_to_s msg}".console_green; nap; end
-def print_y(*msg) print "✔ #{a_to_s msg}".console_green; nap; end
-def puts_n(*msg) puts "✗ #{a_to_s msg}".console_red; nap; end
-def puts_b(*msg) puts "• #{a_to_s msg}"; nap; end
-
 File.open("./source/build.txt", File::RDWR|File::CREAT, 0644) {|f|
 	f.flock(File::LOCK_EX)
 	@ext_build_number = f.read.to_i

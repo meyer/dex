@@ -1,5 +1,5 @@
 # Hidden from command-T
-excludeInFileChooser = "{$excludeInFileChooser,build}"
+excludeInFileChooser = "{$excludeInFileChooser,build,*.js}"
 
 # Hidden in sidebar
 excludeInBrowser = "{$excludeInBrowser,build}"
