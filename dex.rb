@@ -5,6 +5,7 @@ require 'webrick/https'
 require 'yaml'
 require 'json'
 require 'shellwords'
+require 'time'
 
 DEX_CONFIG_FILE = File.expand_path('~/.dex-config.yaml')
 
@@ -37,18 +38,7 @@ Dir.chdir DEX_CONFIG.config['dir']
 
 class DexFiles
   def initialize(url)
-    if url == 'default'
-      @url = false
-      domains = []
-    else
-      # TODO: clean up URL a bit more
-      @url = url.gsub(/^ww[w\d]\./, '')
-      domains = @url.split('.')
-      domains.map!.with_index {|k,i| domains[i..-1].join('.')}
-    end
-
-    domains.push 'utilities'
-
+    # Read enabled files from DEX_ENABLED_FILE
     FileUtils.touch(DEX_ENABLED_FILE)
     begin
       @dex_enabled = YAML.load(IO.read(DEX_ENABLED_FILE)) || {}
@@ -56,8 +46,22 @@ class DexFiles
       @dex_enabled = {}
     end
 
+    if url == 'default'
+      @url = false
+      @has_dexfiles = true
+      domains = []
+    else
+      @url = url.gsub(/^ww[w\d]\./, '')
+      @has_dexfiles = @dex_enabled.include? @url
+      domains = @url.split('.')
+      # Correct order: com, google.com, mail.google.com
+      domains.map!.with_index {|k,i| domains[i..-1].join('.')}.reverse!
+    end
+
+    domains.push 'utilities'
+
     @site_available = Dir.glob("./{#{domains.join(',')}}/*/").map {|f| f[2..-2]}
-    @site_enabled = (@dex_enabled[@url] || [])
+    @site_enabled = @url ? (@dex_enabled[@url] || []) : []
     @global_available = Dir.glob("./global/*/").map {|f| f[2..-2]}
     @global_enabled = (@dex_enabled['global'] || [])
 
@@ -76,13 +80,13 @@ class DexFiles
       }
     end
 
-    return {
-      'site_available' => @site_available,
-      'site_enabled' => @site_enabled,
+    return JSON.pretty_generate({
+      'site_available' =>   @site_available,
+      'site_enabled' =>     @site_enabled,
       'global_available' => @global_available,
-      'global_enabled' => @global_enabled,
+      'global_enabled' =>   @global_enabled,
       'metadata' => metadata
-    }.to_json
+    })
   end
 
   def get(ext)
@@ -115,7 +119,7 @@ class DexFiles
     end.join("\n\n/********/\n\n")
   end
 
-  attr_reader :site_enabled, :site_available, :global_enabled, :global_available
+  attr_reader :site_enabled, :site_available, :global_enabled, :global_available, :has_dexfiles
 
   def write
     File.open(DEX_ENABLED_FILE, 'w+') do |f|
@@ -146,13 +150,37 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
     when %r{
       ^
-      (?:\d+\/)? # cachebuster
+      (?<cb>\d+\/)? # cachebuster
       (?<url>(?:[^\/]+\.[^\/]+|default))
       \.
       (?<ext>css|json|js)
       $
     }x
       dexfiles = DexFiles.new($~['url'])
+
+      if dexfiles.has_dexfiles
+        puts "URL '#{$~['url']}' has dexfiles"
+      else
+        puts "URL '#{$~['url']}' doesn’t have dexfiles"
+        response.set_redirect(
+          WEBrick::HTTPStatus[301], # moved permanently
+          "/#{$~['cb'] || ''}default.#{$~['ext']}"
+        )
+      end
+
+      if $~['cb']
+        puts "Loading '#{request.path}' and caching"
+        # Cache for 69 years
+        response['Last-Modified'] = Time.new(2000,1,1).rfc2822
+        response['Cache-Control'] = "public, max-age=#{60*60*24*365*69}"
+        response['Expires'] = (Time.now + 60*60*24*365*69).rfc2822
+      else
+        puts "Loading uncached version of '#{request.path}'"
+        response['Last-Modified'] = (Time.now + 60*60*24*365*69).rfc2822
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
+        response['Expires'] = (Time.now - 60*60*24*365*69).rfc2822
+      end
+
       if $~['ext'] == 'json'
         response.body = dexfiles.getJSON
       else
