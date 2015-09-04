@@ -68,32 +68,32 @@ class DexSite
 
   end
 
-  def get_json
-    metadata = {}
+  def get_file(ext)
+    if ext == 'json'
+      metadata = {}
 
-    # Get all available modules
-    Dir.glob("./{global,utilities,*.*}/*/").each do |k|
-      category, title = k[2..-2].split("/")
+      # Get all available modules
+      Dir.glob("./{global,utilities,*.*}/*/").each do |k|
+        category, title = k[2..-2].split("/")
 
-      metadata["#{category}/#{title}"] = {
-        "Title" => title,
-        "Category" => category
-      }
+        metadata["#{category}/#{title}"] = {
+          "Title" => title,
+          "Category" => category
+        }
+      end
+
+      return JSON.pretty_generate({
+        'site_available' =>   @site_available,
+        'site_enabled' =>     @site_enabled,
+        'global_available' => @global_available,
+        'global_enabled' =>   @global_enabled,
+        'metadata' => metadata
+      })
     end
 
-    return JSON.pretty_generate({
-      'site_available' =>   @site_available,
-      'site_enabled' =>     @site_enabled,
-      'global_available' => @global_available,
-      'global_enabled' =>   @global_enabled,
-      'metadata' => metadata
-    })
-  end
-
-  def get_file(ext)
     case ext
-    when 'css' then exts = ['css', 'scss']
-    when 'js'  then exts = ['js', 'coffee']
+    when 'css'  then exts = ['css', 'scss']
+    when 'js'   then exts = ['js', 'coffee']
     else return "Unsupported extension: #{ext}"
     end
 
@@ -163,18 +163,17 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
   def do_GET(request, response)
     puts "#{Time.now.strftime "%H:%M:%S"} - #{request.request_method} #{request.unparsed_uri}"
 
-    if /\.(?<ext>css|js|json)$/ =~ request.path
-      response["Content-Type"] = case $~["ext"]
-        when 'css' then 'text/css'
-        when 'js', 'json' then 'application/javascript'
-      end + '; charset=utf-8'
-    end
+    # set content-type
+    response['Content-Type'] = case request.path[/\.(css|js|json)$/, 1]
+      when 'css' then 'text/css'
+      when 'js', 'json' then 'application/javascript'
+      else 'text/plain'
+    end + '; charset=utf-8'
 
-    case request.path[1..-1]
-    when ''
-      dex_site = DexSite.new('default')
-      response.body = dex_site.get_json
-      return
+    # set body contents
+    response.body = case request.path[1..-1]
+    # index
+    when '' then DexSite.new('default').get_json
 
     when %r{
       ^
@@ -185,7 +184,6 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
       $
     }x
       cachebuster, url, ext = $~.captures
-
       dex_site = DexSite.new(url)
 
       if dex_site.has_dexfiles
@@ -211,13 +209,12 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
         response['Expires'] = (Time.now - 60*60*24*365*69).rfc2822
       end
 
-      response.body = ext == 'json' ? dex_site.get_json : dex_site.get_file(ext)
-      return
+      dex_site.get_file(ext)
 
+    else
+      response.status = 404
+      '404 not found'
     end
-
-    response.body = '404 not found'
-    response.status = 404
   end
 end
 
