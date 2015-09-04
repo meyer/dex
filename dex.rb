@@ -18,6 +18,7 @@ class DexConfig
       @config = {}
     end
     @config = {
+      # defaults
       'port' => 3131,
       'hostname' => 'localhost',
       'dir' => File.expand_path('~/.dex')
@@ -36,7 +37,7 @@ DEX_ENABLED_FILE = File.join(DEX_CONFIG.config['dir'], 'enabled.yaml')
 
 Dir.chdir DEX_CONFIG.config['dir']
 
-class DexFiles
+class DexSite
   def initialize(url)
     # Read enabled files from DEX_ENABLED_FILE
     FileUtils.touch(DEX_ENABLED_FILE)
@@ -58,7 +59,7 @@ class DexFiles
       domains.map!.with_index {|k,i| domains[i..-1].join('.')}.reverse!
     end
 
-    domains.push 'utilities'
+    domains.unshift 'utilities'
 
     @site_available = Dir.glob("./{#{domains.join(',')}}/*/").map {|f| f[2..-2]}
     @site_enabled = @url ? (@dex_enabled[@url] || []) : []
@@ -67,7 +68,7 @@ class DexFiles
 
   end
 
-  def getJSON
+  def get_json
     metadata = {}
 
     # Get all available modules
@@ -89,7 +90,7 @@ class DexFiles
     })
   end
 
-  def get(ext)
+  def get_file(ext)
     case ext
     when 'css' then exts = ['css', 'scss']
     when 'js'  then exts = ['js', 'coffee']
@@ -100,23 +101,50 @@ class DexFiles
 
     files = Dir.glob("./{#{enabled.join(',')}}/*.{#{exts.join(',')}}")
 
-    files.map do |file|
+    files.map! do |file|
       file_contents = case file.rpartition('.')[2]
       when 'coffee'
-        `cat #{Shellwords.escape file} | coffee -sc`
+        begin
+          `cat #{Shellwords.escape file} | coffee -sc`
+        rescue
+          "/* coffeescript error, could not load '#{file}' */"
+        end
       when 'scss'
-        `node-sass #{Shellwords.escape file}`
+        begin
+          `node-sass #{Shellwords.escape file}`
+        rescue
+          "/* node-sass error, could not load '#{file}' */"
+        end
       when 'css', 'js'
         IO.read(file)
       end
 
-      [
-        "/* @begin #{file} */",
-        file_contents,
-        "/* @end #{file} */"
-      ].join("\n\n")
+      <<-FILE.chomp
+/* @begin #{file} */
 
-    end.join("\n\n/********/\n\n")
+#{file_contents}
+
+/* @end #{file} */
+      FILE
+    end
+
+    <<-THING
+/*
+Global Modules
+#{@global_available.map do |e|
+  y = @global_enabled.include?(e) ? "x" : " "
+  "[#{y}] #{e}"
+end.join("\n")}
+
+Site Modules
+#{@site_available.map do |e|
+  y = @site_enabled.include?(e) ? "x" : " "
+  "[#{y}] #{e}"
+end.join("\n")}
+*/
+
+#{files.join("\n\n")}
+    THING
   end
 
   attr_reader :site_enabled, :site_available, :global_enabled, :global_available, :has_dexfiles
@@ -133,6 +161,7 @@ end
 
 class DexServer < WEBrick::HTTPServlet::AbstractServlet
   def do_GET(request, response)
+    puts "#{Time.now.strftime "%H:%M:%S"} - #{request.request_method} #{request.unparsed_uri}"
 
     if /\.(?<ext>css|js|json)$/ =~ request.path
       response["Content-Type"] = {
@@ -144,8 +173,8 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
 
     case request.path[1..-1]
     when ''
-      dexfiles = DexFiles.new('dribbble.com')
-      response.body = dexfiles.available.to_json
+      dex_site = DexSite.new('dribbble.com')
+      response.body = dex_site.get_json
       return
 
     when %r{
@@ -156,9 +185,9 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
       (?<ext>css|json|js)
       $
     }x
-      dexfiles = DexFiles.new($~['url'])
+      dex_site = DexSite.new($~['url'])
 
-      if dexfiles.has_dexfiles
+      if dex_site.has_dexfiles
         puts "URL '#{$~['url']}' has dexfiles"
       else
         puts "URL '#{$~['url']}' doesn’t have dexfiles"
@@ -182,17 +211,11 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
       end
 
       if $~['ext'] == 'json'
-        response.body = dexfiles.getJSON
+        response.body = dex_site.get_json
       else
-        response.body = dexfiles.get($~['ext'])
+        response.body = dex_site.get_file($~['ext'])
       end
       return
-
-    when %r{
-      \.
-      (?<ext>css|js|json)
-      $
-    }x
 
     end
 
