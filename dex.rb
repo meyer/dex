@@ -164,40 +164,41 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
     puts "#{Time.now.strftime "%H:%M:%S"} - #{request.request_method} #{request.unparsed_uri}"
 
     if /\.(?<ext>css|js|json)$/ =~ request.path
-      response["Content-Type"] = {
-        "css"  => "text/css; charset=utf-8",
-        "js"   => "application/javascript; charset=utf-8",
-        "json" => "application/javascript; charset=utf-8",
-      }[$~["ext"]]
+      response["Content-Type"] = case $~["ext"]
+        when 'css' then 'text/css'
+        when 'js', 'json' then 'application/javascript'
+      end + '; charset=utf-8'
     end
 
     case request.path[1..-1]
     when ''
-      dex_site = DexSite.new('dribbble.com')
+      dex_site = DexSite.new('default')
       response.body = dex_site.get_json
       return
 
     when %r{
       ^
-      (?<cb>\d+\/)? # cachebuster
-      (?<url>(?:[^\/]+\.[^\/]+|default))
+      (\d+\/)? # cachebuster
+      ([^\/]+\.[^\/]+|default)
       \.
-      (?<ext>css|json|js)
+      (css|json|js)
       $
     }x
-      dex_site = DexSite.new($~['url'])
+      cachebuster, url, ext = $~.captures
+
+      dex_site = DexSite.new(url)
 
       if dex_site.has_dexfiles
-        puts "URL '#{$~['url']}' has dexfiles"
+        puts "URL '#{url}' has dexfiles"
       else
-        puts "URL '#{$~['url']}' doesn’t have dexfiles"
+        puts "URL '#{url}' doesn’t have dexfiles, redirecting to default.#{ext}"
         response.set_redirect(
           WEBrick::HTTPStatus[301], # moved permanently
-          "/#{$~['cb'] || ''}default.#{$~['ext']}"
+          "/#{cachebuster}default.#{ext}"
         )
       end
 
-      if $~['cb']
+      if cachebuster
         puts "Loading '#{request.path}' and caching"
         # Cache for 69 years
         response['Last-Modified'] = Time.new(2000,1,1).rfc2822
@@ -210,11 +211,7 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
         response['Expires'] = (Time.now - 60*60*24*365*69).rfc2822
       end
 
-      if $~['ext'] == 'json'
-        response.body = dex_site.get_json
-      else
-        response.body = dex_site.get_file($~['ext'])
-      end
+      response.body = ext == 'json' ? dex_site.get_json : dex_site.get_file(ext)
       return
 
     end
