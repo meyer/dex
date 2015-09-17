@@ -61,7 +61,7 @@ WOW
   'compile-coffee' => 'cat %{file} | coffee -sc'
 }.freeze
 
-$dex_config = @default_config.dup.merge YAML.load_file(DEX_CONFIG_FILE) || {} rescue {}
+$dex_config = @default_config.dup.merge begin YAML.load_file(DEX_CONFIG_FILE) || {} rescue {} end
 
 def yaml_header
   <<-HEADER
@@ -105,7 +105,18 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-Dir.chdir $dex_config['dir']
+begin
+  raise if !$dex_config['dir'] || $dex_config['dir'] == ''
+  Dir.chdir $dex_config['dir']
+rescue Errno::ENOENT
+  puts "Dex directory '#{$dex_config['dir']}' does not exist.".console_red
+  puts "Create it or specify a different directory with '#{$0} -d /path/to/dir'"
+  exit 69
+rescue
+  puts "Dex directory path not set.".console_red
+  puts "Specify the path to your dex directory with '#{$0} -d /path/to/dir'"
+  exit 69
+end
 
 DEX_ENABLED_FILE = File.join($dex_config['dir'], 'enabled.yaml')
 
