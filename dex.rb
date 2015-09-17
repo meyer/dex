@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'json'
+require 'open3'
 require 'optparse'
 require 'shellwords'
 require 'time'
@@ -10,6 +11,20 @@ require 'yaml'
 
 DEX_VERSION = '1.0.0'
 DEX_CONFIG_FILE = File.expand_path('~/.dex-config.yaml')
+
+# neato string utils
+class String
+  def console_red; colorise(self, "\e[31m"); end
+  def console_green; colorise(self, "\e[32m"); end
+  def console_grey; colorise(self, "\e[30m"); end
+  def console_bold; colorise(self, "\e[1m"); end
+  def console_underline; colorise(self, "\e[4m"); end
+  def colorise(text, color_code)  "#{color_code}#{text}\e[0m" end
+  def comment_out; indent(self, "# ").console_grey; end
+  def indent(t,p); t.split("\n").map {|s| p+s}.join("\n"); end
+  def indent_arrow; indent(self, "#{">".console_green} "); end
+  def indent_timestamp; indent(self, "[#{Time.now.strftime("%H:%M:%S")}] "); end
+end
 
 launchagent_template = <<-WOW
 <?xml version="1.0" encoding="UTF-8"?>
@@ -74,7 +89,7 @@ OptionParser.new do |opts|
     end
     enabled_file = File.join(dex_dir, "enabled.yaml")
     unless File.exists? enabled_file
-      puts "No 'enabled.yaml' file located at #{dex_dir}, creating..."
+      puts "No 'enabled.yaml' file located at #{dex_dir}, creating...".comment_out
       FileUtils.touch enabled_file
     end
     update_config({'dir' => dex_dir})
@@ -113,6 +128,7 @@ class DexSite
 
     @has_dexfiles = @dex_enabled.include? @url
     @available = Dir.glob("./{#{domains.join(',')}}/*/").map {|f| f[2..-2]}
+    @global_available = Dir.glob("./global/*/").map {|f| f[2..-2]}
     @enabled = [@url].concat @dex_enabled[@url]
   end
 
@@ -135,7 +151,7 @@ class DexSite
       return JSON.pretty_generate({
         'site_available' =>   @available,
         'site_enabled' =>     @enabled,
-        'global_available' => @available,
+        'global_available' => @global_available,
         'global_enabled' =>   @enabled,
         'metadata' => metadata
       })
@@ -149,32 +165,16 @@ class DexSite
 
     files = Dir.glob("./{#{@enabled.join(',')}}/*.{#{exts.join(',')}}").select {|f| File.file? f}
 
-  # when 'coffee'
-  #   begin
-  #     if @config['coffee']
-  #     `#{@config['coffee']}` % {file: Shellwords.escape(file)}
-  #   rescue
-  #     "/* coffeescript error, could not load '#{file}' */"
-  #   end
-  # when 'scss'
-  #   begin
-  #     `#{@config['sass']}` % {file: Shellwords.escape(file)}
-  #   rescue
-  #     "/* node-sass error, could not load '#{file}' */"
-  #   end
-  # when 'css', 'js'
-  #   IO.read(file)
-  # end
-
     files.map! do |file|
       _ext = file.rpartition('.')[2]
         file_contents = case
         when ['css', 'js'].include?(_ext)
           IO.read(file)
         when $dex_config.include?("compile-#{_ext}")
-          puts "FILE: #{File.expand_path(file)}"
           begin
-            `#{$dex_config["compile-#{_ext}"]}` % {file: File.expand_path(file).shellescape}
+            Open3.popen3($dex_config["compile-#{_ext}"] % {
+              file: File.expand_path(file).shellescape
+            }) {|stdin, stdout, stderr, wait| stdout.read }
           rescue
             "/* compile-#{_ext} error, could not load '#{file}' */"
           end
@@ -239,21 +239,21 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
       dex_site = DexSite.new(url)
 
       if dex_site.has_dexfiles
-        puts "URL '#{dex_site.url}' has dexfiles"
+        puts "URL '#{dex_site.url}' has dexfiles".comment_out
       else
-        puts "URL '#{dex_site.url}' doesn’t have dexfiles, but here, have a 404"
+        puts "URL '#{dex_site.url}' doesn’t have dexfiles, but here, have a 404".comment_out
         response.status = 404
         return "No dexfiles for '#{dex_site.url}' :...("
       end
 
       if cachebuster
-        puts "Loading '#{request.path}' and caching"
+        puts "Loading '#{request.path}' and caching".comment_out
         # Cache for 69 years
         response['Last-Modified'] = Time.new(2000,1,1).rfc2822
         response['Cache-Control'] = "public, max-age=#{60*60*24*365*69}"
         response['Expires'] = (Time.now + 60*60*24*365*69).rfc2822
       else
-        puts "Loading uncached version of '#{request.path}'"
+        puts "Loading uncached version of '#{request.path}'".comment_out
         response['Last-Modified'] = (Time.now + 60*60*24*365*69).rfc2822
         response['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
         response['Expires'] = (Time.now - 60*60*24*365*69).rfc2822
@@ -290,7 +290,7 @@ server.mount("/", DexServer)
 
 %w(INT TERM).each {|s| trap(s) { server.shutdown }}
 
-puts "dexd 1.0.0 at your service…"
+puts "dexd 1.0.0 at your service…".console_green
 server.start
 __END__
 
