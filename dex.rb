@@ -99,9 +99,10 @@ class DexSite
       # Build array of domain parts from tld all the way to full subdomain
       @domains.map!.with_index {|k,i| @domains[i..-1].join('.')}.reverse!
       @domains.unshift 'utilities'
-      @available = Dir.glob("./{#{@domains.join(',')}}/*/").map {|f| f[2..-2]}
-      @enabled = @dex_enabled[@url] || []
     end
+
+    @available = Dir.glob("./{#{@domains.join(',')}}/*/").map {|f| f[2..-2]}
+    @enabled = @dex_enabled[@url] || []
 
     @global_available = Dir.glob("./global/*/").map {|f| f[2..-2]}
     @global_enabled = @dex_enabled['global'] || []
@@ -181,7 +182,7 @@ Modules for #{@url}
     message = "Module '#{mod}' does not exist :("
     action = false
 
-    if @available.include?(mod)
+    if (@available + @global_available).include?(mod)
       status = 'success'
       if @enabled.delete(mod)
         message = "Module '#{mod}' was disabled for #{@url}"
@@ -191,6 +192,7 @@ Modules for #{@url}
         message = "Module '#{mod}' was enabled for #{@url}"
         action = 'enabled'
         @enabled.push(mod)
+        @enabled.sort!
         @dex_enabled[@url] = @enabled
       end
 
