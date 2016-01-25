@@ -1,8 +1,10 @@
 if window.self isnt window.top
-	console.groupCollapsed("Ignoring iframe: #{window.self.location.hostname}")
-	console.log window.self.location.href
-	console.groupEnd()
-	return
+	# Allow iframes, but only from the same hostname
+	if window.self.location.hostname isnt window.top.location.hostname
+		console.groupCollapsed("Ignoring iframe: #{window.self.location.hostname}")
+		console.log window.self.location.href
+		console.groupEnd()
+		return
 
 dexURL = "<%= DEX_URL %>/"
 
@@ -14,10 +16,10 @@ globalCSS = document.createElement "link"
 hostCSS.rel = "stylesheet"
 globalCSS.rel = "stylesheet"
 
-hostJS.src = dexURL + window.location.hostname + ".js"
-hostCSS.href = dexURL + window.location.hostname + ".css"
-globalJS.src = dexURL + "global.js"
-globalCSS.href = dexURL + "global.css"
+hostJS.src = "#{dexURL}123456/#{window.location.hostname}.js"
+hostCSS.href = "#{dexURL}654321/#{window.location.hostname}.css"
+globalJS.src = "#{dexURL}1234/global.js"
+globalCSS.href = "#{dexURL}4321/global.css"
 
 asapLoaded = false
 bodyLoaded = false
@@ -32,7 +34,6 @@ insertDexfiles = (e) ->
 
 	if !bodyLoaded && document.body
 		bodyLoaded = true
-		# document.body.appendChild dexJS
 		document.body.appendChild globalJS
 		document.body.appendChild hostJS
 

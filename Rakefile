@@ -13,7 +13,7 @@ EXT_CONTENT_SCRIPTS = ["main.coffee"]
 
 # safari.extension.baseURI + "filename"
 # chrome.extension.getURL("filename")
-EXT_EXTRA_RESOURCES = ["dex.coffee","utils.coffee","lodash.min.js"]
+EXT_EXTRA_RESOURCES = ["utils.coffee","lodash.min.js"]
 
 EXT_BACKGROUND_PAGE = true
 EXT_POPOVER_MENU = true
