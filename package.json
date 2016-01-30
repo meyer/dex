@@ -1,0 +1,30 @@
+{
+  "name": "dex-extension",
+  "version": "1.0.0",
+  "description": "WIP",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "rwb serve"
+  },
+  "keywords": [
+    "react"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "jsxstyle": "0.0.18",
+    "react": "^0.14.6",
+    "react-dom": "^0.14.6",
+    "webpack-require": "0.0.16",
+    "xhr": "^2.2.0"
+  },
+  "devDependencies": {
+    "rwb": "0.0.16"
+  },
+  "rwb": {
+    "dom_node": "#.dex-popover",
+    "main": "./rwb/popover.js",
+    "static_generator": "./rwb/render-extension.js"
+  }
+}
