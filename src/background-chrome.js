@@ -1,27 +1,29 @@
 /* global chrome:true */
 'use strict';
 
+const {getValidHostname} = require('./_utils');
+const config = require('../config');
+
 function updateTabStatus(tabID) {
-  var e;
   try {
     chrome.tabs.get(tabID, function(tab) {
-      var hostname, tabAction;
       console.log(`Tab ${tabID}:`, tab);
-      hostname = window.dexutils.getValidHostname(tab.url);
-      tabAction = hostname ? 'enable' : 'disable';
+
+      const hostname = getValidHostname(tab.url);
+      const tabAction = hostname ? 'enable' : 'disable';
+
       if (!hostname) {
         chrome.browserAction.setIcon({
           tabId: tab.id,
           path: {
-            19: 'toolbar-button-icon-chrome-disabled.png',
-            38: 'toolbar-button-icon-chrome-disabled@2x.png',
+            19: 'assets/toolbar-button-icon-chrome-disabled.png',
+            38: 'assets/toolbar-button-icon-chrome-disabled@2x.png',
           },
         });
       }
       console.log(`Tab action: ${tabAction}d tab (${hostname})`);
     });
-  } catch (_error) {
-    e = _error;
+  } catch (e) {
     console.error('updateTabStatus error:', e);
   }
 }
@@ -38,41 +40,41 @@ chrome.tabs.onSelectionChanged.addListener(function(tabID, props) {
 });
 
 chrome.webRequest.onHeadersReceived.addListener(function(info) {
-  if (~info.url.indexOf('<%= DEX_URL %>')) {
+  if (~info.url.indexOf(config.dexURL)) {
     //
   } else if (info.type === 'xmlhttprequest') {
     //
   } else if (info.type === 'main_frame') {
     //
   } else {
-    console.log('[ ] ' + info.type);
+    console.log('[ ]', info.type);
     return;
   }
 
-  console.log('[x] ' + info.type);
-  const response = [];
+  console.log('[x]', info.type);
+  const responseHeaders = [];
 
   Object.keys(info.responseHeaders).forEach(function(header) {
-    let headerName = info.responseHeaders[header].name;
-    let headerVal = info.responseHeaders[header].value;
+    const headerName = info.responseHeaders[header].name;
+    const headerVal = info.responseHeaders[header].value;
 
     switch (headerName.toLowerCase()) {
     case 'content-security-policy':
-      response.push({
+      responseHeaders.push({
         name: headerName,
-        value: headerVal.replace(/((?:script|style|default)-src(?: ['']self[''])?)/g, '$1 <%= DEX_URL %>'),
+        value: headerVal.replace(/((?:script|style|default)-src(?: ['"]self['"])?)/g, `$1 ${config.dexURL}`),
       });
       break;
+
     case 'content-security-policy-report-only':
       break;
+
     default:
-      response.push(info.responseHeaders[header]);
+      responseHeaders.push(info.responseHeaders[header]);
     }
   });
 
-  return {
-    responseHeaders: response,
-  };
+  return {responseHeaders};
 }, {
   urls: ['http://*/*', 'https://*/*'],
 }, [

@@ -1,6 +1,9 @@
 'use strict';
 
 (function() {
+
+  const config = require('../config');
+  const {getValidHostname} = require('./_utils');
   let asapLoaded, bodyLoaded;
 
   // Check for iframes
@@ -13,7 +16,11 @@
     }
   }
 
-  const dexURL = 'https://localhost:3131/';
+  const hostname = getValidHostname(window.location.href);
+
+  if (!hostname) {
+    return;
+  }
 
   const hostJS = document.createElement('script');
   const hostCSS = document.createElement('link');
@@ -22,10 +29,10 @@
 
   hostCSS.rel = 'stylesheet';
   globalCSS.rel = 'stylesheet';
-  hostJS.src = `${dexURL}123456/${window.location.hostname}.js`;
-  hostCSS.href = `${dexURL}654321/${window.location.hostname}.css`;
-  globalJS.src = `${dexURL}1234/global.js`;
-  globalCSS.href = `${dexURL}4321/global.css`;
+  hostJS.src = `${config.dexURL}123456/${hostname}.js`;
+  hostCSS.href = `${config.dexURL}654321/${hostname}.css`;
+  globalJS.src = `${config.dexURL}1234/global.js`;
+  globalCSS.href = `${config.dexURL}4321/global.css`;
 
   function insertDexfiles(e) {
     let headOrBody;
@@ -46,7 +53,7 @@
     }
 
     if (asapLoaded && bodyLoaded) {
-      return this.removeEventListener('DOMNodeInserted', insertDexfiles, false);
+      document.removeEventListener('DOMNodeInserted', insertDexfiles, false);
     }
   }
 

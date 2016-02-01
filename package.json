@@ -13,6 +13,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "babel-loader": "^6.2.1",
+    "babel-plugin-transform-object-rest-spread": "^6.3.13",
+    "babel-preset-es2015": "^6.3.13",
     "jsxstyle": "0.0.18",
     "react": "^0.14.6",
     "react-dom": "^0.14.6",
@@ -24,7 +27,7 @@
   },
   "rwb": {
     "dom_node": "#.dex-popover",
-    "main": "./rwb/popover.js",
-    "static_generator": "./rwb/render-extension.js"
+    "main": "./src/popover/popover.js",
+    "static_generator": "./src/popover/render-static.js"
   }
 }

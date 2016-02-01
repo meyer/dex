@@ -9,25 +9,22 @@ const xhr = require('xhr');
 const Switch = require('./Switch');
 
 // Utils
-const {getValidHostname} = require('../utils');
+const {getValidHostname} = require('../../_utils');
 
 // Styles
-require('../assets/style.css');
+require('../style.css');
 
-const baseURL = 'https://localhost:3131/';
+const config = require('../../../config');
 
 const Popover = React.createClass({
   getInitialState: () => ({
-    url: null,
+    loading: true,
+    xhrError: null,
     hostname: null,
-    site_available: null,
-    site_enabled: null,
-    global_available: null,
-    global_enabled: null,
-    metadata: {},
+    data: null,
   }),
 
-  componentDidMount: function() {
+  getData: function() {
     // Safari extension
     if (
       window &&
@@ -55,53 +52,60 @@ const Popover = React.createClass({
     }
   },
 
+  componentDidMount: function() {
+    this.getData();
+  },
+
   getDataForURL: function(url) {
     const hostname = getValidHostname(url);
 
     if (!hostname) {
       console.error('Invalid URL:', url);
+      this.setState({loading: false});
       return;
     }
 
-    xhr.get(`${baseURL}${hostname}.json`, {json: true}, function (err, resp, data) {
-      console.log('ERR:', err);
-      console.log('RESP:', resp);
+    this.setState({hostname, xhrError: false, loading: true});
 
-      if (err) {
-        console.error(err);
-        return;
+    xhr.get(`${config.dexURL}${hostname}.json`, {json: true}, function (xhrError, resp, data) {
+      if (xhrError) {
+        console.error(xhrError);
       }
 
-      if (resp.statusCode === 200) {
-        this.setState({url, hostname, ...data});
-      }
+      this.setState({data, xhrError, loading: false});
     }.bind(this));
   },
 
   toggleModuleForHostname: function(mod, hostname) {
-    xhr.get(`${baseURL}${hostname}.json?toggle=${mod}`, {json: true}, function (err, resp, data) {
-      console.log('ERR:', err);
-      console.log('RESP:', resp);
+    if (this.state.loading) {
+      console.warn('XHR already in progress');
+      return;
+    }
 
-      if (err) {
-        console.error(err);
+    this.setState({xhrError: false, loading: true});
+
+    xhr.get(`${config.dexURL}${hostname}.json?toggle=${mod}`, {json: true}, function (xhrError, resp, data) {
+      if (xhrError) {
+        console.error(xhrError);
+        this.setState({xhrError, loading: false});
         return;
       }
 
       if (resp.statusCode === 200) {
         if (data.status === 'success') {
-          const g = hostname === 'global' ? 'global_enabled' : 'site_enabled';
-          const newState = {};
+          const data_key = (hostname === 'global') ? 'global_enabled' : 'site_enabled';
+          const updatedData = this.state.data;
 
           if (data.action === 'enabled') {
-            newState[g] = [].concat(this.state[g], mod);
+            updatedData[data_key] = [].concat(this.state.data[data_key], mod);
           } else if (data.action === 'disabled') {
-            newState[g] = this.state[g].filter((el) => el !== mod);
+            updatedData[data_key] = this.state.data[data_key].filter((el) => el !== mod);
           }
 
-          this.setState(newState);
+          this.setState({data: updatedData, xhrError: false, loading: false});
           console.log(data.message);
         } else {
+          this.setState({data: null, xhrError: false, loading: false});
           console.error(data.message);
         }
       }
@@ -109,15 +113,19 @@ const Popover = React.createClass({
   },
 
   buildChildrenFromArray: function(who) {
+    if (!this.state.data) {
+      return null;
+    }
+
     let available, enabled, hostname;
     if (who === 'site') {
       hostname = this.state.hostname;
-      available = this.state.site_available;
-      enabled = this.state.site_enabled;
+      available = this.state.data.site_available;
+      enabled = this.state.data.site_enabled;
     } else if (who === 'global') {
       hostname = who;
-      available = this.state.global_available;
-      enabled = this.state.global_enabled;
+      available = this.state.data.global_available;
+      enabled = this.state.data.global_enabled;
     }
 
     if (!Array.isArray(available) || available.length === 0) {
@@ -130,7 +138,7 @@ const Popover = React.createClass({
     }
 
     const children = available.map(function(mod, idx, arr) {
-      const md = this.state.metadata[mod];
+      const md = this.state.data.metadata[mod];
 
       let badge;
 
@@ -204,7 +212,7 @@ const Popover = React.createClass({
           component="h1"
           padding="0 10px"
           textTransform="uppercase"
-          fontSize={10}
+          fontSize={10.5}
           backgroundColor="rgba(0,0,0,0.1)"
           boxShadow="inset 0 -1px 0 rgba(0,0,0,0.07)"
           letterSpacing={1}>
@@ -218,8 +226,26 @@ const Popover = React.createClass({
   },
 
   render: function(){
+    if (this.state.xhrError) {
+      return (
+        <Block whiteSpace="nowrap" padding={15}>XHR Error broh</Block>
+      );
+    }
+
+    if (this.state.loading && !this.state.data) {
+      return (
+        <Block whiteSpace="nowrap" padding={15}>Loading{'\u2026'}</Block>
+      );
+    }
+
+    if (!this.state.hostname) {
+      return (
+        <Block whiteSpace="nowrap" padding={15}>Dex is disabled for this domain</Block>
+      );
+    }
+
     return (
-      <Block>
+      <Block minWidth={300}>
         <Block>{this.buildChildrenFromArray('site')}</Block>
         <Block>{this.buildChildrenFromArray('global')}</Block>
       </Block>

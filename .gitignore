@@ -1,4 +1,3 @@
-build/*
+build
 *.pem
 *.psd
-source/extension/*.js
