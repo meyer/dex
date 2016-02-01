@@ -242,10 +242,7 @@ Modules for #{@url}
         @dex_enabled[@url] = @enabled
       end
 
-      global_modules = @dex_enabled.delete('global')
-
-      @dex_enabled = @dex_enabled.sort.to_h
-      @dex_enabled = {'global' => global_modules}.merge(@dex_enabled) if global_modules
+      @dex_enabled = Hash[@dex_enabled.sort {|a,b| a[0] === 'global' ? -1 : a <=> b}]
 
       puts "#{status.upcase}: #{message}".indent_timestamp
       File.open(DEX_ENABLED_FILE, 'w+') do |f|
