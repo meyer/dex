@@ -13,10 +13,12 @@ DEX_DIR = File.expand_path('~/.dex')
 DEX_ENABLED_FILE = File.join(DEX_DIR, 'enabled.yaml')
 
 DEX_HOST = 'localhost'
-DEX_PORT = 3131
+$dex_port = 3131
 
 LAUNCHAGENT_LABEL = 'fm.meyer.dex'
 LAUNCHAGENT_FILE = File.expand_path("~/Library/LaunchAgents/#{LAUNCHAGENT_LABEL}.plist")
+
+%w(INT TERM).each {|s| trap(s){puts "\ntake care out there \u{1f44b}"; abort}}
 
 def launchctl(l); system('launchctl', l, '-w', LAUNCHAGENT_FILE.shellescape); end
 
@@ -33,17 +35,41 @@ class String
   def indent_timestamp; indent(self, "[#{Time.now.strftime("%H:%M:%S.%L")}] "); end
 end
 
+ARGV.push('--help') if ARGV.empty?
+
 OptionParser.new do |opts|
   opts.separator "Starts dex server in the foreground. kill with <Control>C"
 
-  opts.on(nil, '--load', 'Load launchagent') {|l| launchctl('load'); exit}
-  opts.on(nil, '--unload', 'Unload launchagent') {|l| launchctl('unload'); exit}
+  opts.on('-r', '--run [port]', 'Run dex server') do |p|
+    if p
+      if p[/^(\d{4})$/]
+        $dex_port = Integer(p)
+        unless $dex_port > 1024
+          abort "Port number must be greater than 1024"
+        end
+      else
+        abort 'Invalid port number'
+      end
+    end
+    $run_dex = true
+  end
+
+  opts.on(nil, '--status', 'Show status of launchagent') do |l|
+    if system("curl -I --ipv4 --referer nope https://#{DEX_HOST}:#{$dex_port}/is-this-thing-on &> /dev/null")
+      puts "Dex is running!"
+      system('launchctl list | grep fm.meyer.dex')
+    else
+      puts "Dex is not running"
+    end
+  end
+
+  opts.on(nil, '--load', 'Load launchagent') {|l| launchctl('load')}
+  opts.on(nil, '--unload', 'Unload launchagent') {|l| launchctl('unload')}
 
   opts.on(nil, '--uninstall', 'Uninstall launchagent') do |l|
     abort 'Already uninstalled!' unless File.exist?(LAUNCHAGENT_FILE)
     launchctl('unload')
     FileUtils.rm_f(LAUNCHAGENT_FILE)
-    exit
   end
 
   opts.on(nil, '--install', 'Install launchagent') do |l|
@@ -61,6 +87,7 @@ OptionParser.new do |opts|
     <key>ProgramArguments</key>
     <array>
       <string>#{File.expand_path(__FILE__)}</string>
+      <string>--run</string>
     </array>
 
     <key>WorkingDirectory</key>
@@ -73,13 +100,17 @@ OptionParser.new do |opts|
     PLIST
 
     File.open(LAUNCHAGENT_FILE, 'w', 0755) {|f| f.write(plist)}
-    exit
+  end
+
+  opts.on_tail('-h', '--help', 'Show this message') do
+    puts opts
   end
 
 end.parse!
 
-abort('Dex expect a directory or symlink at ~/.dex') unless File.exist?(DEX_DIR)
+exit unless $run_dex
 
+abort('Dex expects a directory or symlink at ~/.dex') unless File.exist?(DEX_DIR)
 Dir.chdir(DEX_DIR)
 
 class DexSite
@@ -111,7 +142,22 @@ class DexSite
   attr_reader :domains
 
   def get_file(ext)
-    puts "EXT: #{ext}. #{ext === 'json'}"
+    if @url === 'empty'
+      if ['js', 'css'].include?(ext)
+        return <<-WOW
+/*
+No enabled modules for the requested domain :..(
+
+Available Modules
+=================
+#{(@available + @global_available).map {|a| "- #{a}"}.join("\n")}
+*/
+        WOW
+      else
+        return ''
+      end
+    end
+
     if ext === 'json'
       metadata = {}
 
@@ -260,9 +306,12 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
         file_contents = dex_site.get_file(ext)
 
         if !file_contents
-          puts "URL '#{url}' doesn’t have any enabled dexfiles, but here, have a 404".comment_out
-          response.status = 404
-          file_contents = '/* 404 */'
+          puts "URL '#{url}' doesn’t have any enabled dexfiles, redirecting ".comment_out
+          if cachebuster
+            response.set_redirect(WEBrick::HTTPStatus::MovedPermanently, "/#{cachebuster}empty.#{ext}")
+          else
+            response.set_redirect(WEBrick::HTTPStatus::TemporaryRedirect, "/empty.#{ext}")
+          end
         end
 
         if cachebuster
@@ -293,7 +342,7 @@ ssl_key = ssl_info.scan(/(-----BEGIN RSA PRIVATE KEY-----.+?-----END RSA PRIVATE
 server_options = {
   :Host => DEX_HOST,
   :BindAddress => "127.0.0.1",
-  :Port => DEX_PORT,
+  :Port => $dex_port,
   :Logger => WEBrick::Log.new("/dev/null"),
   :AccessLog => [],
   :SSLEnable => true,
@@ -308,7 +357,7 @@ server.mount("/", DexServer)
 
 %w(INT TERM).each {|s| trap(s) { server.shutdown }}
 
-puts "dexd #{DEX_VERSION} running at https://#{DEX_HOST}:#{DEX_PORT}".console_green.indent_timestamp
+puts "dexd #{DEX_VERSION} running at https://#{DEX_HOST}:#{$dex_port}".console_green.indent_timestamp
 server.start
 __END__
 
