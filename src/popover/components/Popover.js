@@ -10,7 +10,7 @@ const xhr = require('xhr');
 const Switch = require('./Switch');
 
 // Utils
-const {getValidHostname} = require('../../_utils');
+const getValidHostname = require('../../../lib/getValidHostname');
 
 // Styles
 require('../style.css');
@@ -26,15 +26,6 @@ const Popover = React.createClass({
   }),
 
   getData: function() {
-    // Safari extension
-    if (
-      window &&
-      typeof window.safari === 'object' &&
-      typeof window.safari.application === 'object'
-    ) {
-      this.getDataForURL(window.safari.application.activeBrowserWindow.activeTab.url);
-    } else
-
     // Chrome extension
     if (
       window &&
@@ -45,6 +36,7 @@ const Popover = React.createClass({
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
         this.getDataForURL(tabs[0].url);
       }.bind(this));
+
     // Demotron
     } else {
       // Testing this requires running Chrome with --disable-web-security
@@ -52,11 +44,12 @@ const Popover = React.createClass({
     }
   },
 
-  updateLastModifiedDate: function() {
+  updateLastModifiedDate: function(hostname) {
+    const opts = {};
+    opts[`lastUpdated-${hostname}`] = true;
+
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        updateLastModified: true,
-      }, function(response) {
+      chrome.tabs.sendMessage(tabs[0].id, opts, function(response) {
         if (response) {
           console.log('Response:', response);
         } else {
@@ -81,7 +74,7 @@ const Popover = React.createClass({
 
     this.setState({hostname, xhrError: false, loading: true});
 
-    xhr.get(`${dexURL}${hostname}.json`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}/${hostname}.json`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError);
       }
@@ -98,7 +91,7 @@ const Popover = React.createClass({
 
     this.setState({xhrError: false, loading: true});
 
-    xhr.get(`${dexURL}${hostname}.json?toggle=${mod}`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}/${hostname}.json?toggle=${mod}`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError);
         this.setState({xhrError, loading: false});
@@ -117,7 +110,7 @@ const Popover = React.createClass({
           }
 
           this.setState({data: updatedData, xhrError: false, loading: false});
-          this.updateLastModifiedDate();
+          this.updateLastModifiedDate(hostname);
           console.log(data.message);
         } else {
           this.setState({data: null, xhrError: false, loading: false});
