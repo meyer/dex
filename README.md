@@ -1,48 +1,51 @@
 # Meet Dex.
 
-**Dex** is tool that allows you to modify websites with some CSS and JavaScript.
+**Dex** is tool that allows you (yes, you!) to modify any website with CSS and JavaScript.
 
 It’s a two-part system:
 
-1. A node-powered **daemon** that serves the CSS and JS files.
-2. A **browser extension** for Chrome and Safari that loads those files into your browser.
+1. A tiny little **daemon** that serves blobs of CSS and JS.
+2. A **browser extension** for Chrome that loads those blobs into your browser.
 
-This is the source code for the browser extension.
+## Installation
 
-## Modules: The core of Dex
+**Dex daemon:** You can run the Dex daemon right away with `./dexd.rb --run`. If you want the Dex daemon to launch automatically on system start, run `./dexd.rb --install` to install the LaunchAgent. Worth nothing: the Dex daemon will launch from whatever directory it’s currently in.
 
-Every time you visit a URL, the Dex browser extension loads one special CSS file and one special JS file for that specific domain. These two files are specifically built based on *modules* that you have enabled in the Dex extension popover.
+**Browser extension:** Open `chrome://extensions` and drag the Dex `crx` file from the `extensions` folder over to the window.
 
-What is a *module*? It’s a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task. Modules live inside a folder called `.dex` in your home folder. There are three types of modules with different levels of scope:
+Make a folder called `.dex` in your home folder or better yet, symlink `~/.dex` to a more sensible location on your hard drive. I symlinked `~/.dex` to [`~/Repositories/dexfiles`](https://github.com/meyer/dexfiles).
 
-1. **Site-specific**: If you want to modify *one particular site*, you’ll want to place the module in a *site-specific folder*. Site-specific folders are URL-named folders (`github.com`, `google.com`, etc.). Enabled site-specific modules are only loaded for the *exact matching URL*. Subdomains of URLs are treated as separate URLs and can be configured independently of the parent URL, but they have access to all the parent URL’s modules. This is especially useful when dealing with beta subdomains.
 
-2. **Global**: If you want to modify *every site you visit*, you’ll want to put the module inside a folder called `global`. Enabled global modules are loaded for *every website* you visit.
 
-3. **Utility**: If you want to modify any particular site, but *not all sites*, you’ll want to put the module inside a folder called `utilities`. Utility modules show up as regular site-specific modules in the Dex popover, but enabling a utility module will only enable it for the specific domain that you’ve browsed to.
+# Modules: The core of Dex
 
+Every time you visit a URL, the Dex browser extension loads CSS and JavaScript files for that specific domain. These files are built based on **modules** that you have enabled in the Dex extension popover.
+
+What is a **module**? It’s a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task.
+
+Modules live inside a folder called `.dex` in your home folder.
 
 ## Writing your first module
 
-1. First, you need to decide what you want your module to do. Create a folder with a sensible and identifiable name related to the module’s actions. Do you want to make a website’s background red? Make a folder called `Change body background to red`.
+1. Think about what you want this module to do, then create a folder with a succinct name based on what the module does. Want to make a website’s background red? A folder called `Change body background to red` would do the trick.
 
-2. Put CSS and JS files corresponding to the particular module’s actions in the folder you just created.
+2. Put CSS and JS files in the folder you just created.
 
-3. Next, you need to decide what the scope of your module should be. Consult the previous section of this README to determine scope, then place the folder you created into a corresponding parent folder.
+3. Think about what the scope of this module should be, then place it in one of three subfolders inside `~/.dex/`:
 
-4. Visit the URL you want to modify, open the Dex popover menu, and click the switch next to `Change body background to red` to enable the module.
+  * :computer: **Site-specific module**: If you want to modify *one particular site*, you’ll want to place the module in a *site-specific folder*. Site-specific folders are URL-named folders (`github.com`, `google.com`, etc.). Enabled site-specific modules are only loaded for the *exact matching URL*. Subdomains of URLs are treated as separate URLs and can be configured independently of the parent URL, but they have access to all the parent URL’s modules.
 
-5. Refresh the web page. The module CSS and JS will load right away.
+  * :earth_africa: **Global module**: If you want to modify *every site you visit*, you’ll want to put the module inside a folder called `global`. Enabled global modules are loaded for *every website* you visit, so don’t go too crazy.
+
+  * :hammer: **Utility module**: If you want to modify any particular site, but *not all sites*, you’ll want to put the module inside a folder called `utilities`. Utility modules show up as regular site-specific modules in the Dex popover, but enabling a utility module will only enable it for the specific domain that you’ve browsed to.
+
+4. Visit the URL you want to modify, open the Dex popover menu, and click the switch next to `Change body background to red` to enable the module. *Whammy.*
 
 
-### Pro Tips
-
-Files are loaded alphabetically. Prefix a module name with underscores or spaces to bump it up the module list.
-
-If you’re unsure how everything’s loading, you can go to `https://localhost:3131/example.com.js` or `https://localhost:3131/example.com.css` to see the file that the Dex browser extension is loading.
-
+## Good Things 2 Know
 
 ### File Load Order
+
 Dex loads files in the following order:
 
 1. `global/*.js`
@@ -50,10 +53,17 @@ Dex loads files in the following order:
 3. `example.com/*.js`
 4. `example.com/*/*.{css,js}`
 
-Files are bunched into one file per file type and served over `https`.
 
+### Debugging
 
+Two JS files and two CSS files are loaded for each domain. For `github.com`, the following files would be loaded:
 
+* `https://localhost:3131/global.js`
+* `https://localhost:3131/global.css`
+* `https://localhost:3131/github.com.js`
+* `https://localhost:3131/github.com.css`
+
+If something isn’t showing up, check one of those files to see if the JS/CSS is in there.
 
 # Talk to me.
 Got a problem or a suggestion? Here’s how to get ahold of me, in preferred order:

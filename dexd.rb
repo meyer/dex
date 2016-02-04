@@ -8,6 +8,7 @@ require 'time'
 require 'yaml'
 require 'fileutils'
 
+DEX_NAME = File.basename(__FILE__, '.rb')
 DEX_VERSION = '1.0.0'
 DEX_DIR = File.expand_path('~/.dex')
 DEX_ENABLED_FILE = File.join(DEX_DIR, 'enabled.yaml')
@@ -73,6 +74,8 @@ OptionParser.new do |opts|
   end
 
   opts.on(nil, '--install', 'Install launchagent') do |l|
+    launchctl('unload')
+
     plist = <<-PLIST.chomp
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -90,6 +93,12 @@ OptionParser.new do |opts|
       <string>--run</string>
     </array>
 
+    <key>StandardOutPath</key>
+    <string>#{File.expand_path('~/Library/Logs/dex.log')}</string>
+
+    <key>StandardErrorPath</key>
+    <string>#{File.expand_path('~/Library/Logs/dex-error.log')}</string>
+
     <key>WorkingDirectory</key>
     <string>#{DEX_DIR}</string>
 
@@ -100,6 +109,7 @@ OptionParser.new do |opts|
     PLIST
 
     File.open(LAUNCHAGENT_FILE, 'w', 0755) {|f| f.write(plist)}
+    launchctl('load')
   end
 
   opts.on_tail('-h', '--help', 'Show this message') do
@@ -354,7 +364,7 @@ server.mount("/", DexServer)
 
 %w(INT TERM).each {|s| trap(s) { server.shutdown }}
 
-puts "dexd #{DEX_VERSION} running at https://#{DEX_HOST}:#{$dex_port}".console_green.indent_timestamp
+puts "#{DEX_NAME} #{DEX_VERSION} running at https://#{DEX_HOST}:#{$dex_port}".console_green.indent_timestamp
 server.start
 __END__
 
