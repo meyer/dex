@@ -1,6 +1,6 @@
 {
-  "name": "dex-extension",
-  "version": "1.0.0",
+  "name": "Dex",
+  "version": "1.1.1",
   "description": "WIP",
   "main": "index.js",
   "scripts": {
@@ -19,6 +19,7 @@
     "jsxstyle": "0.0.18",
     "react": "^0.14.6",
     "react-dom": "^0.14.6",
+    "rwb": "github:meyer/rwb#opinions",
     "webpack-require": "0.0.16",
     "xhr": "^2.2.0"
   },
@@ -29,5 +30,6 @@
     "dom_node": "#.dex-popover",
     "main": "./src/popover/popover.js",
     "static_generator": "./src/popover/render-static.js"
-  }
+  },
+  "dexURL": "https://localhost:3131"
 }

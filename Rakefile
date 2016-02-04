@@ -7,6 +7,7 @@ require 'json'
 RakeFileUtils.verbose(false)
 
 WEBPACK = './node_modules/.bin/webpack'
+RWB = './node_modules/.bin/rwb'
 NODE_ENV = ENV['DEV_MODE'] ? 'development' : 'production'
 puts "NODE_ENV: #{NODE_ENV}"
 
@@ -18,7 +19,7 @@ end
 
 task :rwb => [:reset] do
   puts 'Generating popover with rwb...'
-  system({'NODE_ENV' => NODE_ENV}, ['rwb', 'static', 'build/popover'].shelljoin)
+  system({'NODE_ENV' => NODE_ENV}, [RWB, 'static', 'build/popover'].shelljoin)
 end
 
 namespace :chrome do
@@ -26,7 +27,7 @@ namespace :chrome do
     puts 'Generating manifest.json...'
 
     # TODO: maybe just load config.js?
-    manifest = JSON.parse(`node -e "console.log(JSON.stringify(require('./src/_manifest-template.js'), null, '  '))"`)
+    manifest = JSON.parse(`node -e "console.log(JSON.stringify(require('./lib/manifest.js'), null, '  '))"`)
     manifest['web_accessible_resources'] = Dir.glob('build/popover/*.{css,js}').map {|e| e.sub('build/', '')}
 
     File.open('build/manifest.json', 'w') {|f| f.write(JSON.pretty_generate(manifest))}

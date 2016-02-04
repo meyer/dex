@@ -2,15 +2,27 @@
 
 const webpack = require('webpack');
 
-const webpackConfig = {
-  plugins: [
-    new webpack.DefinePlugin({
-      'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'production'),
-    }),
-    new webpack.optimize.UglifyJsPlugin(),
-    new webpack.optimize.OccurenceOrderPlugin(),
-  ],
+const NODE_ENV = process.env.NODE_ENV || 'production';
 
+const webpackPlugins = [
+  new webpack.DefinePlugin({
+    'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
+  }),
+];
+
+if (NODE_ENV === 'production') {
+  webpackPlugins.push(
+    new webpack.optimize.UglifyJsPlugin({
+      compress: {
+        drop_console: true,
+      },
+    }),
+    new webpack.optimize.OccurenceOrderPlugin()
+  );
+}
+
+const webpackConfig = {
+  plugins: webpackPlugins,
   module: {
     loaders: [
       {
@@ -26,6 +38,10 @@ const webpackConfig = {
         },
         // include: ...,
         // exclude: ...,
+      },
+      {
+        test: /\.json$/,
+        loader: require.resolve('json-loader'),
       },
     ],
   },

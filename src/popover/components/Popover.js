@@ -1,3 +1,4 @@
+/* global chrome */
 'use strict';
 
 // Modules
@@ -14,7 +15,7 @@ const {getValidHostname} = require('../../_utils');
 // Styles
 require('../style.css');
 
-const config = require('../../../config');
+const {dexURL} = require('../../../package.json');
 
 const Popover = React.createClass({
   getInitialState: () => ({
@@ -39,17 +40,30 @@ const Popover = React.createClass({
       window &&
       typeof window.chrome === 'object' &&
       typeof window.chrome.tabs === 'object' &&
-      window.chrome.tabs.getSelected
+      window.chrome.tabs.query
     ) {
-      window.chrome.tabs.getSelected(null, function(tab) {
-        this.getDataForURL(tab.url);
+      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        this.getDataForURL(tabs[0].url);
       }.bind(this));
-
     // Demotron
     } else {
       // Testing this requires running Chrome with --disable-web-security
       this.getDataForURL('http://dribbble.com');
     }
+  },
+
+  updateLastModifiedDate: function() {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, {
+        updateLastModified: true,
+      }, function(response) {
+        if (response) {
+          console.log('Response:', response);
+        } else {
+          console.log('Pinged current tab');
+        }
+      });
+    });
   },
 
   componentDidMount: function() {
@@ -67,7 +81,7 @@ const Popover = React.createClass({
 
     this.setState({hostname, xhrError: false, loading: true});
 
-    xhr.get(`${config.dexURL}${hostname}.json`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}${hostname}.json`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError);
       }
@@ -84,7 +98,7 @@ const Popover = React.createClass({
 
     this.setState({xhrError: false, loading: true});
 
-    xhr.get(`${config.dexURL}${hostname}.json?toggle=${mod}`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}${hostname}.json?toggle=${mod}`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError);
         this.setState({xhrError, loading: false});
@@ -103,6 +117,7 @@ const Popover = React.createClass({
           }
 
           this.setState({data: updatedData, xhrError: false, loading: false});
+          this.updateLastModifiedDate();
           console.log(data.message);
         } else {
           this.setState({data: null, xhrError: false, loading: false});
@@ -137,7 +152,7 @@ const Popover = React.createClass({
       );
     }
 
-    const children = available.map(function(mod, idx, arr) {
+    const children = available.map(function(mod) {
       const md = this.state.data.metadata[mod];
 
       let badge;

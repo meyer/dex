@@ -1,19 +1,17 @@
+/* global chrome */
 'use strict';
 
 (function() {
 
-  const config = require('../config');
+  const {dexURL} = require('../package.json');
   const {getValidHostname} = require('./_utils');
   let asapLoaded, bodyLoaded;
 
-  // Check for iframes
   if (window.self !== window.top) {
-    if (window.self.location.hostname !== window.top.location.hostname) {
-      console.groupCollapsed('Ignoring iframe:', window.self.location.hostname);
-      console.log(window.self.location.href);
-      console.groupEnd();
-      return;
-    }
+    console.groupCollapsed('Ignoring iframe:', window.self.location.toString());
+    console.log(window.self.location.href);
+    console.groupEnd();
+    return;
   }
 
   const hostname = getValidHostname(window.location.href);
@@ -29,25 +27,23 @@
 
   hostCSS.rel = 'stylesheet';
   globalCSS.rel = 'stylesheet';
-  hostJS.src = `${config.dexURL}123456/${hostname}.js`;
-  hostCSS.href = `${config.dexURL}654321/${hostname}.css`;
-  globalJS.src = `${config.dexURL}1234/global.js`;
-  globalCSS.href = `${config.dexURL}4321/global.css`;
 
   function insertDexfiles(e) {
-    let headOrBody;
     if (!e.relatedNode.tagName) {
+      console.log('relatedNode.tagName is not set', e);
       return;
     }
 
-    if (!asapLoaded && (headOrBody = document.head || document.body)) {
+    if (!asapLoaded && document.documentElement) {
       asapLoaded = true;
-      headOrBody.appendChild(globalCSS);
-      headOrBody.appendChild(hostCSS);
+      console.log('Appending dex CSS to html');
+      document.documentElement.appendChild(globalCSS);
+      document.documentElement.appendChild(hostCSS);
     }
 
     if (!bodyLoaded && document.body) {
       bodyLoaded = true;
+      console.log('Appending dex JS to body');
       document.body.appendChild(globalJS);
       document.body.appendChild(hostJS);
     }
@@ -58,5 +54,56 @@
   }
 
   document.addEventListener('DOMNodeInserted', insertDexfiles);
+
+  chrome.storage.local.get('lastModified', function (result) {
+    let lastModified = result.lastModified;
+
+    if (!lastModified) {
+      lastModified = Date.now();
+      chrome.storage.local.set({lastModified}, function() {
+        console.log('lastModified updated');
+      });
+    }
+
+    console.log('Last modified:', lastModified);
+    console.log('Loading Dex CSS/JS...');
+
+    hostJS.src = `${dexURL}${lastModified}/${hostname}.js`;
+    hostCSS.href = `${dexURL}${lastModified}/${hostname}.css`;
+    globalJS.src = `${dexURL}${lastModified}/global.js`;
+    globalCSS.href = `${dexURL}${lastModified}/global.css`;
+  });
+
+  chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+    if (sender.tab) {
+      console.log('from a content script:', sender.tab.url);
+    } else {
+      console.log('from a URL');
+    }
+
+    console.log(request, sender);
+
+    if (request.updateLastModified) {
+      const lastModified = Date.now();
+
+      hostCSS.href = `${dexURL}${lastModified}/${hostname}.css`;
+      globalCSS.href = `${dexURL}${lastModified}/global.css`;
+
+      sendResponse({
+        status: 'success',
+        message: `Updated lastModified to ${lastModified}`,
+      });
+
+      chrome.storage.local.set({lastModified}, function() {
+        console.log('Updated lastModified');
+      });
+    } else {
+      console.log('Nope');
+      sendResponse({
+        status: 'error',
+        message: 'Nothing happened here.',
+      });
+    }
+  });
 
 })();
