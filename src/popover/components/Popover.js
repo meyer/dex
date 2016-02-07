@@ -151,27 +151,11 @@ const Popover = React.createClass({
       let badge;
 
       if (md['Category'] === 'utilities') {
-        badge = (
-          <InlineBlock
-            fontSize={10}
-            fontWeight={800}
-            color="#FFF"
-            textShadow="0 1px 1px rgba(0,0,0,0.2)"
-            textTransform="uppercase"
-            padding="1px 4px"
-            marginRight={5}
-            borderRadius={3}
-            backgroundColor="rgba(0,0,0,0.15)"
-            backgroundImage="linear-gradient(to bottom, rgba(0,0,0,0.15), rgba(0,0,0,0))"
-            boxShadow="inset 0 0 0 1px rgba(0,0,0,0.1)">
-            Utility
-          </InlineBlock>
-        );
-
         // alignSelf="flex-start" ??
         badge = (
           <InlineBlock
-            flex={0}
+            flexGrow={0}
+            flexShrink={0}
             fontSize={10}
             height={15}
             fontWeight={800}
@@ -200,10 +184,13 @@ const Popover = React.createClass({
           {badge}
           <Block
             padding="1px 0"
-            flex={1}>
+            flexGrow={1}
+            flexShrink={1}>
             {md['Title']}
           </Block>
-          <Block flex={0}>
+          <Block
+            flexGrow={0}
+            flexShrink={0}>
             <Switch
               marginLeft={7}
               onClick={() => this.toggleModuleForHostname(mod, hostname)}
