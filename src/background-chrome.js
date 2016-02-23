@@ -1,8 +1,7 @@
 /* global chrome:true */
-'use strict';
 
-const getValidHostname = require('../lib/getValidHostname');
-const {dexURL} = require('../package.json');
+import getValidHostname from '../lib/getValidHostname';
+import {dexURL} from '../package.json';
 
 function updateTabStatus(tabID) {
   try {

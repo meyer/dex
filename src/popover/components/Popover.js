@@ -1,21 +1,20 @@
 /* global chrome */
-'use strict';
 
 // Modules
-const React = require('react');
-const {InlineBlock, Flex, Block} = require('jsxstyle');
-const xhr = require('xhr');
+import React from 'react';
+import {InlineBlock, Flex, Block} from 'jsxstyle';
+import xhr from 'xhr';
 
 // Components
-const Switch = require('./Switch');
+import Switch from './Switch';
 
 // Utils
-const getValidHostname = require('../../../lib/getValidHostname');
+import getValidHostname from '../../../lib/getValidHostname';
 
 // Styles
-require('../style.css');
+import '../style.css';
 
-const {dexURL} = require('../../../package.json');
+import {dexURL} from '../../../package.json';
 
 const Popover = React.createClass({
   getInitialState: () => ({
@@ -83,15 +82,17 @@ const Popover = React.createClass({
     }.bind(this));
   },
 
-  toggleModuleForHostname: function(mod, hostname) {
+  toggleModuleForHostname: function(moduleName, hostname) {
     if (this.state.loading) {
       console.warn('XHR already in progress');
       return;
     }
 
+    console.log('moduleName:', moduleName);
+
     this.setState({xhrError: false, loading: true});
 
-    xhr.get(`${dexURL}/${hostname}.json?toggle=${mod}`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}/${hostname}.json?toggle=${moduleName}`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError);
         this.setState({xhrError, loading: false});
@@ -100,43 +101,36 @@ const Popover = React.createClass({
 
       if (resp.statusCode === 200) {
         if (data.status === 'success') {
-          const data_key = (hostname === 'global') ? 'global_enabled' : 'site_enabled';
           const updatedData = this.state.data;
-
-          if (data.action === 'enabled') {
-            updatedData[data_key] = [].concat(this.state.data[data_key], mod);
-          } else if (data.action === 'disabled') {
-            updatedData[data_key] = this.state.data[data_key].filter((el) => el !== mod);
-          }
+          updatedData[hostname][moduleName].enabled = data.action === 'enabled';
 
           this.setState({data: updatedData, xhrError: false, loading: false});
           this.updateLastModifiedDate(hostname);
           console.log(data.message);
         } else {
-          this.setState({data: null, xhrError: false, loading: false});
+          this.setState({xhrError: false, loading: false});
           console.error(data.message);
         }
       }
     }.bind(this));
   },
 
-  buildChildrenFromArray: function(who) {
+  buildChildrenForDomain: function(hostname) {
     if (!this.state.data) {
+      console.log(`No data for "${hostname}"`);
       return null;
     }
 
-    let available, enabled, hostname;
-    if (who === 'site') {
-      hostname = this.state.hostname;
-      available = this.state.data.site_available;
-      enabled = this.state.data.site_enabled;
-    } else if (who === 'global') {
-      hostname = who;
-      available = this.state.data.global_available;
-      enabled = this.state.data.global_enabled;
+    console.log('data:', this.state.data);
+
+    if (!this.state.data[hostname]) {
+      console.error(`Invalid hostname "${hostname}". Your options: ${Object.keys(this.state.data).join(', ')}`);
+      return;
     }
 
-    if (!Array.isArray(available) || available.length === 0) {
+    const available = Object.keys(this.state.data[hostname]);
+
+    if (available.length === 0) {
       return (
         <Block
           padding={20}>
@@ -145,27 +139,27 @@ const Popover = React.createClass({
       );
     }
 
-    const children = available.map(function(mod) {
-      const md = this.state.data.metadata[mod];
-
+    const children = available.map(function(k, idx) {
+      const mod = this.state.data[hostname][k];
       let badge;
 
-      if (md['Category'] === 'utilities') {
+      if (mod.category === 'utilities') {
         // alignSelf="flex-start" ??
         badge = (
           <InlineBlock
             flexGrow={0}
             flexShrink={0}
-            fontSize={10}
-            height={15}
-            fontWeight={800}
-            color="rgba(0,0,0,0.3)"
+            fontSize={8.8}
+            height={12}
+            lineHeight="12px"
+            fontWeight={700}
+            color="rgba(0,0,0,0.4)"
             textTransform="uppercase"
             padding="0 3px"
-            marginRight={5}
+            marginRight={6}
             borderRadius={2}
             backgroundColor="#FFF"
-            boxShadow="0 0 0 1px rgba(0,0,0,0.1)">
+            boxShadow="0 0 0 1px rgba(0,0,0,0.14)">
             Utility
           </InlineBlock>
         );
@@ -174,27 +168,30 @@ const Popover = React.createClass({
       return (
         <Flex
           alignItems="center"
-          key={mod}
+          key={`${hostname}-${k}-${idx}`}
           component="li"
           position="relative"
-          boxShadow="0 1px 0 rgba(0,0,0,0.07)"
           fontSize={12}
           lineHeight="14px"
+          backgroundColor="#FFF"
+          marginTop={1}
+          marginBottom={1}
           padding="6px 8px">
           {badge}
           <Block
             padding="1px 0"
             flexGrow={1}
             flexShrink={1}>
-            {md['Title']}
+            {mod.title}
           </Block>
           <Block
             flexGrow={0}
             flexShrink={0}>
             <Switch
               marginLeft={7}
-              onClick={() => this.toggleModuleForHostname(mod, hostname)}
-              enabled={~enabled.indexOf(mod)}
+              onClick={() => this.toggleModuleForHostname(k, hostname)}
+              enabled={mod.enabled}
+              editable={!mod.weirdo}
             />
           </Block>
         </Flex>
@@ -205,15 +202,17 @@ const Popover = React.createClass({
       <Block>
         <Block
           component="h1"
-          padding="0 10px"
+          padding="4px 8px"
           textTransform="uppercase"
           fontSize={10.5}
-          backgroundColor="rgba(0,0,0,0.1)"
-          boxShadow="inset 0 -1px 0 rgba(0,0,0,0.07)"
+          lineHeight="12px"
           letterSpacing={1}>
           {hostname}
         </Block>
-        <Block component="ul">
+        <Block
+          component="ul"
+          backgroundColor="rgba(0,0,0,0.04)"
+          overflow="hidden">
           {children}
         </Block>
       </Block>
@@ -240,12 +239,14 @@ const Popover = React.createClass({
     }
 
     return (
-      <Block minWidth={300}>
-        <Block>{this.buildChildrenFromArray('site')}</Block>
-        <Block>{this.buildChildrenFromArray('global')}</Block>
+      <Block
+        width="100%"
+        padding="4px 0">
+        <Block marginBottom={8}>{this.buildChildrenForDomain(this.state.hostname)}</Block>
+        <Block>{this.buildChildrenForDomain('global')}</Block>
       </Block>
     );
   },
 });
 
-module.exports = Popover;
+export default Popover;

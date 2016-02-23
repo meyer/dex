@@ -1,9 +1,7 @@
-'use strict';
+import getValidHostname from '../lib/getValidHostname';
+import setDexFileURLs from '../lib/setDexFileURLs';
 
 (function() {
-
-  const getValidHostname = require('../lib/getValidHostname');
-  const setDexFileURLs = require('../lib/setDexFileURLs');
 
   if (window.self !== window.top) {
     console.groupCollapsed('Ignoring iframe');

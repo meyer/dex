@@ -12,3 +12,7 @@ body, html, h1, li, ul {
   line-height: 18px;
   list-style: none;
 }
+
+body, html {
+  background-color: rgb(245,245,245);
+}

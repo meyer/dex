@@ -43,12 +43,10 @@ OptionParser.new do |opts|
 
   opts.on('-r', '--run [port]', 'Run dex server') do |p|
     if p
-      if p[/^(\d{4})$/]
+      begin
         $dex_port = Integer(p)
-        unless $dex_port > 1024
-          abort "Port number must be greater than 1024"
-        end
-      else
+        abort "Port number must be greater than 1024" unless $dex_port > 1024
+      rescue
         abort 'Invalid port number'
       end
     end
@@ -125,42 +123,61 @@ Dir.chdir(DEX_DIR)
 
 class DexSite
   def initialize(url)
-    @url = url
-    @domains = [@url]
+    @url = url.to_s.force_encoding("utf-8")
 
     # Load enabled files from YAML, remove falsey/empty values
-    @dex_enabled = (begin YAML.load_file(DEX_ENABLED_FILE) rescue {} end || {}).select {|k,v| v && v != []}
+    @dex_config = (begin YAML.load_file(DEX_ENABLED_FILE) rescue {} end || {}).select {|k,v| v && v != []}
 
-    @available = []
-    @enabled = []
+    # All modules that exist on the filesystem
+    @valid_modules = Dir.glob("./{global,utilities,*.*}/*/").map {|f| f[2..-2]}
 
-    unless @url === 'global'
-      @url.gsub!(/^ww[w\d]\./, '')
-      @domains = @url.split('.')
-      # Build array of domain parts from tld all the way to full subdomain
-      @domains.map!.with_index {|k,i| @domains[i..-1].join('.')}.reverse!
-      @domains.unshift 'utilities'
+    if @url === 'global'
+      @available = Dir.glob("./global/*/").map {|f| f[2..-2]}
+    else
+      domains = []
+
+      if @url != 'empty'
+        @url.gsub!(/^ww[w\d]\./, '')
+
+        # Build array of domain parts from TLD all the way to full subdomain
+        domains = @url.split('.')
+        domains.map!.with_index {|k,i| domains[i..-1].join('.')}.reverse!
+      end
+
+      # Add utils to the front of the array
+      domains.unshift 'utilities'
+      @available = Dir.glob("./{#{domains.join(',')}}/*/").map {|f| f[2..-2]}
     end
 
-    @available = Dir.glob("./{#{@domains.join(',')}}/*/").map {|f| f[2..-2]}
-    @enabled = @dex_enabled[@url] || []
+    # Remove invalid modules
+    @dex_config[@url] = (@dex_config[@url] || []) & @valid_modules
 
-    @global_available = Dir.glob("./global/*/").map {|f| f[2..-2]}
-    @global_enabled = @dex_enabled['global'] || []
+    # Ensure special case modules are included (i.e. a util module in global)
+    @all_available = @available | @dex_config[@url]
   end
 
-  attr_reader :domains
+  def get_object
+    Hash[@all_available.map do |k|
+      category, title = k.split("/")
+      [
+        k,
+        {
+          title: title,
+          category: category,
+          enabled: @dex_config[@url].include?(k),
+        }.tap {|h| h[:weirdo] = true if !@available.include?(k)}
+      ]
+    end]
+  end
 
   def get_file(ext)
     if @url === 'empty'
       if ['js', 'css'].include?(ext)
         return <<-WOW
 /*
-No enabled modules for the requested domain :..(
-
 Available Modules
 =================
-#{(@available + @global_available).map {|a| "- #{a}"}.join("\n")}
+#{(@available).map {|a| "- #{a}"}.join("\n")}
 */
         WOW
       else
@@ -168,42 +185,20 @@ Available Modules
       end
     end
 
-    if ext === 'json'
-      metadata = {}
-
-      # Get all available modules
-      Dir.glob("./{global,utilities,*.*}/*/").each do |k|
-        category, title = k[2..-2].split("/")
-
-        metadata["#{category}/#{title}"] = {
-          "Title" => title,
-          "Category" => category
-        }
-      end
-
-      return JSON.pretty_generate({
-        'site_available' =>   @available,
-        'site_enabled' =>     @enabled,
-        'global_available' => @global_available,
-        'global_enabled' =>   @global_enabled,
-        'metadata' => metadata
-      })
-    end
-
-    puts @dex_enabled[@url]
-
-    return nil unless @dex_enabled[@url] && @dex_enabled[@url].length > 0
+    return nil unless @dex_config[@url] && @dex_config[@url].length > 0
     return nil unless ['js', 'css'].include?(ext)
 
-    # Always load setup files for domains
-    files = Dir.glob("./{#{[@url].concat(@enabled).join(',')}}/*.#{ext}").select {|f| File.file? f}
+    # Load setup files for exact domain matches
+    files = Dir.glob("./{#{[@url].concat(@dex_config[@url]).join(',')}}/*.#{ext}").select {|f| File.file? f}
 
+    # Return nil if no files exist for this module + file extension combo
     return nil if files.length === 0
 
     files.map! do |file|
       file_contents = IO.read(file).chomp
 
       if ext === 'js'
+        # Wrap javascript in a closure
         file_contents = <<-JS.chomp
 (function(){
 
@@ -224,8 +219,8 @@ Available Modules
 
     <<-THING
 /*
-Modules for #{@url}
-#{@available.map {|e| "[#{@enabled.include?(e) ? "x" : " "}] #{e}"}.join("\n")}
+Modules (#{@url})
+#{@all_available.map {|e| "[#{@dex_config[@url].include?(e) ? "x" : " "}] #{e}"}.join("\n")}
 */
 
 #{files.join("\n\n")}
@@ -233,33 +228,39 @@ Modules for #{@url}
   end
 
   def toggle_site(mod)
-    mod = mod.to_s
+    mod = mod.to_s.force_encoding("utf-8")
     status = 'error'
     message = "Module '#{mod}' does not exist :("
     action = false
 
-    if (@available + @global_available).include?(mod)
+    if @available.include?(mod)
       status = 'success'
-      if @enabled.delete(mod)
+      if @dex_config[@url].delete(mod)
         message = "Module '#{mod}' was disabled for #{@url}"
         action = 'disabled'
-        @dex_enabled.delete(@url) if @enabled.empty?
       else
         message = "Module '#{mod}' was enabled for #{@url}"
         action = 'enabled'
-        @enabled.push(mod)
-        @enabled.sort!
-        @dex_enabled[@url] = @enabled
+        @dex_config[@url].push(mod)
+        @dex_config[@url].sort!
       end
 
-      @dex_enabled = Hash[@dex_enabled.sort {|a,b| a[0] === 'global' ? -1 : a <=> b}]
+      @dex_config.delete(@url) if @dex_config[@url].empty?
+
+      # Sort global modules to the top
+      @dex_config = Hash[@dex_config.sort {|a,b| a[0] === 'global' ? -1 : a <=> b}]
 
       puts "#{status.upcase}: #{message}".indent_timestamp
       File.open(DEX_ENABLED_FILE, 'w+') do |f|
         f.puts "# Generated by #{DEX_NAME} #{DEX_VERSION}"
         f.puts "# #{Time.now.asctime}"
-        f.puts @dex_enabled.to_yaml
+        f.puts @dex_config.to_yaml
       end
+
+    elsif @all_available.include?(mod)
+      message = "Module '#{mod}' cannot be toggled from the Dex popover"
+    elsif @valid_modules.include?(mod)
+      message = "Module '#{mod}' is not available for this domain"
     end
 
     {
@@ -272,8 +273,6 @@ Modules for #{@url}
 end
 
 puts 'Requiring webrick...'.indent_timestamp
-
-# TODO: figure out why requiring webrick adds 5-10 seconds to startup time
 require 'webrick'
 require 'webrick/https'
 
@@ -284,55 +283,69 @@ class DexServer < WEBrick::HTTPServlet::AbstractServlet
     puts "#{request.request_method} #{request.unparsed_uri}".indent_timestamp
 
     # set content-type
-    response['Content-Type'] = case request.path[/\.(css|js|json)$/, 1]
-      when 'css' then 'text/css'
-      when 'js', 'json' then 'application/javascript'
-      else 'text/plain'
+    response['Content-Type'] = if File.extname(request.path) === '.css'
+      'text/css'
+    else
+      'application/javascript'
     end + '; charset=utf-8'
 
     # set body contents
     response.body = case request.path[1..-1]
 
-    # index
-    when '' then DexSite.new('nope').get_file('json')
+    # default: return global JSON
+    when '' then {global: DexSite.new('global').get_object}.to_json
+
+    # Return JSON config for specified hostname
+    when %r{
+      ^
+      ([^\/]+)
+      \.
+      json
+      $
+    }x
+      url = $~.captures[0]
+      dexObj = {url => DexSite.new(url)}
+      dexObj['global'] = DexSite.new('global') if url != 'global'
+
+      if request.query['toggle']
+        dexObj[url].toggle_site(request.query['toggle']).to_json
+      else
+        Hash[dexObj.map {|k,v| [k, v.get_object]}].to_json
+      end
 
     when %r{
       ^
       ([^\/]+\/)? # optional cachebuster
       ([^\/]+)
       \.
-      (css|json|js)
+      (css|js)
       $
     }x
       cachebuster, url, ext = $~.captures
       dex_site = DexSite.new(url)
 
-      if ext === 'json' && request.query['toggle']
-        dex_site.toggle_site(request.query['toggle']).to_json
-      else
-        file_contents = dex_site.get_file(ext)
+      file_contents = dex_site.get_file(ext)
 
-        if !file_contents
-          puts "URL '#{url}' doesn’t have any enabled dexfiles, redirecting ".comment_out
-          if cachebuster
-            response.set_redirect(WEBrick::HTTPStatus::MovedPermanently, "/#{cachebuster}empty.#{ext}")
-          else
-            response.set_redirect(WEBrick::HTTPStatus::TemporaryRedirect, "/empty.#{ext}")
-          end
-        end
-
-        if cachebuster
-          response['Last-Modified'] = Time.new(2000,1,1).rfc2822
-          response['Cache-Control'] = "public, max-age=#{60*60*24*365*69}"
-          response['Expires'] = (Time.now + 60*60*24*365*69).rfc2822
-        else
-          response['Last-Modified'] = (Time.now + 60*60*24*365*69).rfc2822
-          response['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
-          response['Expires'] = (Time.now - 60*60*24*365*69).rfc2822
-        end
-
-        file_contents
+      unless file_contents || url === 'empty'
+        puts "No enabled #{ext.upcase} files for '#{url}', redirecting...".comment_out
+        response.set_redirect(
+          cachebuster ? WEBrick::HTTPStatus::MovedPermanently : WEBrick::HTTPStatus::TemporaryRedirect,
+          "/69/empty.#{ext}"
+        )
       end
+
+      if cachebuster
+        response['Last-Modified'] = Time.new(2000,1,1).rfc2822
+        response['Cache-Control'] = "public, max-age=#{60*60*24*365*69}"
+        response['Expires'] = (Time.now + 60*60*24*365*69).rfc2822
+      else
+        response['Last-Modified'] = (Time.now + 60*60*24*365*69).rfc2822
+        response['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0'
+        response['Expires'] = (Time.now - 60*60*24*365*69).rfc2822
+      end
+
+      file_contents
+
     else
       response.status = 404
       '/* 404 */'

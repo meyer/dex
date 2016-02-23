@@ -1,6 +1,4 @@
-'use strict';
+import React from 'react';
+import Popover from './components/Popover';
 
-const React = require('react');
-const Popover = require('./components/Popover');
-
-module.exports.default = <Popover />;
+export default <Popover />;
