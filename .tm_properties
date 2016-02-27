@@ -1,1 +1,1 @@
-exclude="{$exclude,build}"
+exclude="{$exclude,extension/build}"

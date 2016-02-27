@@ -23,13 +23,10 @@
     "webpack-require": "0.0.16",
     "xhr": "^2.2.0"
   },
-  "devDependencies": {
-    "rwb": "0.0.16"
-  },
   "rwb": {
     "dom_node": "#.dex-popover",
-    "main": "./src/popover/popover.js",
-    "static_generator": "./src/popover/render-static.js"
+    "main": "./popover/popover.js",
+    "static_generator": "./popover/render-static.js"
   },
   "dexURL": "https://localhost:3131"
 }

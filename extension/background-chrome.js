@@ -1,7 +1,7 @@
 /* global chrome:true */
 
-import getValidHostname from '../lib/getValidHostname';
-import {dexURL} from '../package.json';
+import getValidHostname from './lib/getValidHostname';
+import {dexURL} from './package.json';
 
 function updateTabStatus(tabID) {
   try {

@@ -1,5 +1,5 @@
-import getValidHostname from '../lib/getValidHostname';
-import setDexFileURLs from '../lib/setDexFileURLs';
+import getValidHostname from './lib/getValidHostname';
+import setDexFileURLs from './lib/setDexFileURLs';
 
 (function() {
 

@@ -9,12 +9,12 @@ import xhr from 'xhr';
 import Switch from './Switch';
 
 // Utils
-import getValidHostname from '../../../lib/getValidHostname';
+import getValidHostname from '../../lib/getValidHostname';
 
 // Styles
 import '../style.css';
 
-import {dexURL} from '../../../package.json';
+import {dexURL} from '../../package.json';
 
 const Popover = React.createClass({
   getInitialState: () => ({

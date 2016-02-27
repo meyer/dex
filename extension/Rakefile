@@ -6,7 +6,11 @@ require 'json'
 
 RakeFileUtils.verbose(false)
 
-WEBPACK = './node_modules/.bin/webpack'
+WEBPACK = [
+  './node_modules/.bin/webpack',
+  '--config',
+  File.expand_path('./lib/webpack.config.js')
+]
 RWB = './node_modules/.bin/rwb'
 NODE_ENV = ENV['DEV_MODE'] ? 'development' : 'production'
 puts "NODE_ENV: #{NODE_ENV}"
@@ -19,7 +23,7 @@ end
 
 task :rwb => [:reset] do
   puts 'Generating popover with rwb...'
-  system({'NODE_ENV' => NODE_ENV}, [RWB, 'static', 'build/popover'].shelljoin)
+  system({'NODE_ENV' => NODE_ENV}, "#{RWB} static ./build/popover")
 end
 
 namespace :chrome do
@@ -35,14 +39,16 @@ namespace :chrome do
 end
 
 task :copy_assets do
-  cp_r 'src/assets', 'build'
+  cp_r './assets', 'build'
 end
 
 task :webpack do
-  Dir.glob('src/*.js').reject {|f| File.basename(f).start_with? '_'}.each do |jsFile|
+  Dir.glob('./*.js').reject {|f| File.basename(f).start_with? '_'}.each do |jsFile|
     puts "Bundling '#{jsFile}' with webpack..."
     basename = File.basename(jsFile)
-    system({'NODE_ENV' => NODE_ENV}, [WEBPACK, jsFile, File.join('build', basename)].shelljoin)
+    unless system({'NODE_ENV' => NODE_ENV}, (WEBPACK + [jsFile, File.join('build', basename)]).shelljoin)
+      puts "Error running webpack for '#{jsFile}'!"
+    end
   end
 end
 
