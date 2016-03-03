@@ -24,34 +24,10 @@ import setDexFileURLs from './lib/setDexFileURLs';
   hostCSS.rel = 'stylesheet';
   globalCSS.rel = 'stylesheet';
 
-  let asapLoaded, bodyLoaded;
-
-  function insertDexfiles(e) {
-    if (!e.relatedNode.tagName) {
-      console.log('relatedNode.tagName is not set', e);
-      return;
-    }
-
-    if (!asapLoaded && document.documentElement) {
-      asapLoaded = true;
-      console.log('Appending Dex CSS to html');
-      document.documentElement.appendChild(globalCSS);
-      document.documentElement.appendChild(hostCSS);
-    }
-
-    if (!bodyLoaded && document.body) {
-      bodyLoaded = true;
-      console.log('Appending Dex JS to body');
-      document.body.appendChild(globalJS);
-      document.body.appendChild(hostJS);
-    }
-
-    if (asapLoaded && bodyLoaded) {
-      document.removeEventListener('DOMNodeInserted', insertDexfiles, false);
-    }
-  }
-
-  document.addEventListener('DOMNodeInserted', insertDexfiles);
+  document.documentElement.appendChild(hostJS);
+  document.documentElement.appendChild(hostCSS);
+  document.documentElement.appendChild(globalJS);
+  document.documentElement.appendChild(globalCSS);
 
   setDexFileURLs(hostname, hostJS, hostCSS);
   setDexFileURLs('global', globalJS, globalCSS);
