@@ -6,6 +6,10 @@ require 'json'
 
 RakeFileUtils.verbose(false)
 
+# gross
+PWD = File.dirname(__FILE__)
+Dir.chdir PWD
+
 WEBPACK = [
   './node_modules/.bin/webpack',
   '--config',
