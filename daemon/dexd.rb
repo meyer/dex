@@ -106,7 +106,7 @@ OptionParser.new do |opts|
 </plist>
     PLIST
 
-    File.open(LAUNCHAGENT_FILE, 'w', 0755) {|f| f.write(plist)}
+    File.open(LAUNCHAGENT_FILE, File::WRONLY | File::TRUNC | File::CREAT, 0755) {|f| f.write(plist)}
     launchctl('load')
   end
 
