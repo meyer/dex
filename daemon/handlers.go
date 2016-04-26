@@ -9,11 +9,18 @@ import (
 	"time"
 )
 
+var contentTypes = map[string]string{
+	"js":   "application/javascript; charset=utf-8",
+	"css":  "text/css; charset=utf-8",
+	"json": "application/json; charset=utf-8",
+}
+
 func siteHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
 	url, hasURL := vars["url"]
-	_, hasExt := vars["ext"]
+	ext, hasExt := vars["ext"]
+	cachebuster, hasCB := vars["cachebuster"]
 
 	if !hasURL || !hasExt {
 		panic("Required URL params `url` and `ext` both need to be set")
@@ -24,11 +31,8 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 	site.loadConfig()
 	fmt.Println("dexPath", site.dexPath)
 
-	// config := make(map[string]Array)
-	// config[site.url] = site.modules
-
 	// Set expiration headers
-	if cachebuster, hasCB := vars["cachebuster"]; hasCB {
+	if hasCB {
 		log.Printf("cachebuster: %s", cachebuster)
 		w.Header().Set("Last-Modified", time.Date(2000, 1, 1, 12, 0, 0, 0, time.UTC).Format(time.RFC1123))
 		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", 60*60*24*365*69))
@@ -40,5 +44,34 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Expires", time.Now().AddDate(-69, 0, 0).Format(time.RFC1123))
 	}
 
-	w.Write([]byte("Gorilla!\n"))
+	w.Header().Set("Content-Type", contentTypes[ext])
+
+	switch ext {
+	case "js", "css":
+		fileContents := site.getFile(ext)
+		if fileContents == nil {
+			if cachebuster != "" {
+				http.Redirect(w, r, "/69/empty."+ext, http.StatusMovedPermanently)
+			} else {
+				http.Redirect(w, r, "/69/empty."+ext, http.StatusFound)
+			}
+			return
+		}
+		w.Write(fileContents)
+	case "json":
+		w.Write(site.getJSON())
+	default:
+		panic(fmt.Sprintf("Unrecognised extension: %s", ext))
+	}
+}
+
+func emptyHandler(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	ext, _ := vars["ext"]
+	w.Header().Set("Content-Type", contentTypes[ext])
+	w.Write([]byte("/* nothing here, sorryyyy */"))
+}
+
+func indexHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("hello! this is dex.\n"))
 }
