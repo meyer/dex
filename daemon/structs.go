@@ -18,10 +18,11 @@ type DexModule struct {
 }
 
 type DexSite struct {
-	url, dexPath, dexEnabledFile string
-	config                       map[string]map[string]DexModule
-	moduleMap                    map[string]struct{}
-	enabledFiles                 map[string][]string
+	url, dexPath string
+	config       map[string]map[string]bool
+	moduleMap    map[string]struct{}
+	enabledFiles map[string]map[string][]string
+	yamlConfig   map[string][]string
 }
 
 func (site *DexSite) loadConfig() {
@@ -29,49 +30,36 @@ func (site *DexSite) loadConfig() {
 	site.dexPath, _ = filepath.EvalSymlinks(filepath.Join(usr.HomeDir, ".dex"))
 	dexEnabledFile := filepath.Join(site.dexPath, "enabled.yaml")
 
-	// TODO: check to see if dexPath exists
-
-	// Read dexPath/enabled.yaml
 	enabledSrc, err := ioutil.ReadFile(dexEnabledFile)
 	if err != nil {
 		panic(err)
 	}
 
-	var enabledConfig map[string][]string
-	err = yaml.Unmarshal(enabledSrc, &enabledConfig)
-	if err != nil {
+	if err := yaml.Unmarshal(enabledSrc, &site.yamlConfig); err != nil {
 		panic(err)
 	}
 
-	var enabledModules []string
 	site.moduleMap = make(map[string]struct{})
-	site.enabledFiles = make(map[string][]string)
+	site.enabledFiles = make(map[string]map[string][]string)
+	site.config = make(map[string]map[string]bool)
 
-	if siteEnabled, hasSiteEnabled := enabledConfig[site.url]; hasSiteEnabled {
-		enabledModules = append(enabledModules, siteEnabled...)
-		log.Println("Enabled modules for "+site.url+":", siteEnabled)
+	/*
+
+		{
+			dribbble.com: [],
+			utilities: [],
+		}
+
+	*/
+
+	if enabledModules, hasEnabled := site.yamlConfig[site.url]; hasEnabled {
+		log.Println("Enabled modules for "+site.url+":", enabledModules)
+		for _, k := range enabledModules {
+			site.moduleMap[k] = struct{}{}
+		}
 	} else {
-		log.Println("No enabled modules for " + site.url)
+		log.Println("No enabled modules for " + site.url + ".")
 	}
-
-	if globalEnabled, hasGlobalEnabled := enabledConfig["global"]; hasGlobalEnabled {
-		enabledModules = append(enabledModules, globalEnabled...)
-		log.Println("Enabled global modules:", globalEnabled)
-	} else {
-		log.Println("No enabled global modules")
-	}
-
-	// this is gross
-	for _, k := range enabledModules {
-		site.moduleMap[k] = struct{}{}
-	}
-
-	site.config = make(map[string]map[string]DexModule)
-	site.getModules(site.url)
-}
-
-func (site *DexSite) getModules(moduleGroup string) {
-	log.Println("Modules in " + moduleGroup + ":")
 
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		relPath, _ := filepath.Rel(site.dexPath, path)
@@ -88,15 +76,11 @@ func (site *DexSite) getModules(moduleGroup string) {
 			if len(pathBits) == 2 {
 				// Set config if this is a module directory
 				if _, exists := site.config[pathBits[0]]; !exists {
-					site.config[pathBits[0]] = make(map[string]DexModule)
+					site.config[pathBits[0]] = make(map[string]bool)
 				}
 
 				_, enabled := site.moduleMap[moduleKey]
-
-				site.config[pathBits[0]][moduleKey] = DexModule{
-					Title:   pathBits[1],
-					Enabled: enabled,
-				}
+				site.config[pathBits[0]][moduleKey] = enabled
 			}
 		} else {
 			// Save files by file type
@@ -106,11 +90,17 @@ func (site *DexSite) getModules(moduleGroup string) {
 			}
 			ext = ext[1:] // trim the initial dot
 
+			if _, exists := site.enabledFiles[pathBits[0]]; !exists {
+				site.enabledFiles[pathBits[0]] = make(map[string][]string)
+			}
+
 			if len(pathBits) == 2 {
-				site.enabledFiles[ext] = append(site.enabledFiles[ext], path)
+				// Always add domain-level files
+				site.enabledFiles[pathBits[0]][ext] = append(site.enabledFiles[pathBits[0]][ext], path)
 			} else if len(pathBits) > 2 {
+				// Add module-level files only if module is enabled
 				if _, enabled := site.moduleMap[moduleKey]; enabled {
-					site.enabledFiles[ext] = append(site.enabledFiles[ext], path)
+					site.enabledFiles[pathBits[0]][ext] = append(site.enabledFiles[pathBits[0]][ext], path)
 				}
 			}
 		}
@@ -118,7 +108,7 @@ func (site *DexSite) getModules(moduleGroup string) {
 		return nil
 	}
 
-	if moduleGroup == "global" {
+	if site.url == "global" {
 		if err := filepath.Walk(filepath.Join(site.dexPath, "global"), walkFn); err != nil {
 			log.Fatal(err)
 		}
@@ -131,25 +121,34 @@ func (site *DexSite) getModules(moduleGroup string) {
 			log.Fatal(err)
 		}
 	}
-
-	jsonString, _ := json.MarshalIndent(site.enabledFiles, "", "  ")
-	log.Println("site.enabledFiles:", string(jsonString))
-}
-
-func (site *DexSite) getJSON() []byte {
-	jsonString, err := json.MarshalIndent(site.config, "", "  ")
-
-	if err != nil {
-		log.Println("jsonString:", string(jsonString))
-		return nil
-	}
-
-	return jsonString
 }
 
 func (site *DexSite) getFile(ext string) []byte {
-	if _, exists := site.enabledFiles[ext]; !exists {
+	if ext == "json" {
+		jsonString, err := json.MarshalIndent(site.config, "", "  ")
+		log.Println("jsonString:", string(jsonString))
+
+		if err != nil {
+			log.Fatal(err)
+			return nil
+		}
+
+		return jsonString
+	}
+
+	var enabledFiles []string
+
+	if site.url != "global" {
+		enabledFiles = site.enabledFiles["utilities"][ext]
+	}
+
+	enabledFiles = append(site.enabledFiles[site.url][ext], enabledFiles...)
+
+	if len(enabledFiles) == 0 {
+		log.Println("No enabled " + strings.ToUpper(ext) + " files for " + site.url)
 		return nil
+	} else {
+		log.Println("Enabled "+strings.ToUpper(ext)+" files for "+site.url+":", enabledFiles)
 	}
 
 	var lilBits []string
@@ -159,7 +158,8 @@ func (site *DexSite) getFile(ext string) []byte {
 		lilBits = []string{"/* " + strings.ToUpper(ext) + " files for " + site.url + " */\n"}
 	}
 
-	for idx, filePath := range site.enabledFiles[ext] {
+	for idx, filePath := range enabledFiles {
+		log.Println("file:", filePath)
 		relPath, _ := filepath.Rel(site.dexPath, filePath)
 		if fileContents, exists := ioutil.ReadFile(filePath); exists == nil {
 			if idx > 0 {
@@ -172,4 +172,8 @@ func (site *DexSite) getFile(ext string) []byte {
 	}
 
 	return []byte(strings.Join(lilBits, "\n\n"))
+}
+
+func (site *DexSite) toggleModule(moduleName string) []byte {
+	return []byte{}
 }

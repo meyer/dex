@@ -58,8 +58,10 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Write(fileContents)
+
 	case "json":
-		w.Write(site.getJSON())
+		w.Write(site.getFile("json"))
+
 	default:
 		panic(fmt.Sprintf("Unrecognised extension: %s", ext))
 	}
