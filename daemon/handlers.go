@@ -28,7 +28,7 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	site := DexSite{url: url}
-	site.loadConfig()
+	site.init()
 	fmt.Println("dexPath", site.dexPath)
 
 	// Set expiration headers
@@ -60,7 +60,7 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(fileContents)
 
 	case "json":
-		w.Write(site.getFile("json"))
+		w.Write(site.getJSON())
 
 	default:
 		panic(fmt.Sprintf("Unrecognised extension: %s", ext))
