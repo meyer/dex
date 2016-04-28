@@ -9,6 +9,8 @@ import (
 	"time"
 )
 
+const DexVersion = "2.0.0"
+
 var contentTypes = map[string]string{
 	"js":   "application/javascript; charset=utf-8",
 	"css":  "text/css; charset=utf-8",
@@ -29,7 +31,6 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 
 	site := DexSite{url: url}
 	site.init()
-	fmt.Println("dexPath", site.dexPath)
 
 	// Set expiration headers
 	if hasCB {
@@ -38,7 +39,7 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", 60*60*24*365*69))
 		w.Header().Set("Expires", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))
 	} else {
-		log.Println("no cachebuster set")
+		log.Println("cachebuster: not set")
 		w.Header().Set("Last-Modified", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0")
 		w.Header().Set("Expires", time.Now().AddDate(-69, 0, 0).Format(time.RFC1123))
@@ -60,7 +61,11 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 		w.Write(fileContents)
 
 	case "json":
-		w.Write(site.getJSON())
+		if moduleName := r.FormValue("toggle"); moduleName != "" {
+			w.Write(site.toggleModule(moduleName))
+		} else {
+			w.Write(site.getConfigAsJSON())
+		}
 
 	default:
 		panic(fmt.Sprintf("Unrecognised extension: %s", ext))
@@ -75,5 +80,5 @@ func emptyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func indexHandler(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("hello! this is dex.\n"))
+	w.Write([]byte("helloooo\n"))
 }

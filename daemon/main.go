@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	log.Println("helloooo")
+	log.Println("dexd " + DexVersion + " at your service")
 	r := mux.NewRouter()
 	r.HandleFunc("/", indexHandler)
 	r.HandleFunc("/{url:[^\\.]+\\.[^\\.]+}.{ext:json}", siteHandler)
