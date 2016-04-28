@@ -191,6 +191,11 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 		"message": "Some kind of error occurred :(",
 	}
 
+	if _, err := os.Stat(filepath.Join(site.dexPath, toggledModule)); err != nil {
+		payload["message"] = "Invalid module :("
+		return stringifyOrDie(payload)
+	}
+
 	newSlice := site.yamlConfig[site.url]
 
 	if enabledModules, hasEnabled := site.yamlConfig[site.url]; hasEnabled {
