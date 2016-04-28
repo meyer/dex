@@ -102,7 +102,7 @@ const Popover = React.createClass({
       if (resp.statusCode === 200) {
         if (data.status === 'success') {
           const updatedData = this.state.data;
-          updatedData[hostname][moduleName].enabled = data.action === 'enabled';
+          updatedData[hostname][moduleName] = data.action === 'enabled';
 
           this.setState({data: updatedData, xhrError: false, loading: false});
           this.updateLastModifiedDate(hostname);
@@ -140,10 +140,11 @@ const Popover = React.createClass({
     }
 
     const children = available.map(function(k, idx) {
-      const mod = this.state.data[hostname][k];
-      let badge;
+      let badge, editable = true;
 
-      if (mod.category === 'utilities') {
+      const [modCategory, modName] = k.split('/');
+
+      if (modCategory === 'utilities') {
         // alignSelf="flex-start" ??
         badge = (
           <InlineBlock
@@ -163,6 +164,8 @@ const Popover = React.createClass({
             Utility
           </InlineBlock>
         );
+      } else {
+        editable = modCategory === hostname;
       }
 
       return (
@@ -182,7 +185,7 @@ const Popover = React.createClass({
             padding="1px 0"
             flexGrow={1}
             flexShrink={1}>
-            {mod.title}
+            {modName}
           </Block>
           <Block
             flexGrow={0}
@@ -190,8 +193,8 @@ const Popover = React.createClass({
             <Switch
               marginLeft={7}
               onClick={() => this.toggleModuleForHostname(k, hostname)}
-              enabled={mod.enabled}
-              editable={!mod.weirdo}
+              enabled={this.state.data[hostname][k]}
+              editable={editable}
             />
           </Block>
         </Flex>
