@@ -15,7 +15,7 @@ import (
 )
 
 type DexSite struct {
-	url, dexPath, dexEnabledFile string
+	url, DexPath, DexEnabledFile string
 	config                       map[string]map[string]bool
 	moduleMap                    map[string]struct{}
 	enabledFiles                 map[string]map[string][]string
@@ -24,10 +24,10 @@ type DexSite struct {
 
 func (site *DexSite) init() {
 	usr, _ := user.Current()
-	site.dexPath, _ = filepath.EvalSymlinks(filepath.Join(usr.HomeDir, ".dex"))
-	site.dexEnabledFile = filepath.Join(site.dexPath, "enabled.yaml")
+	site.DexPath, _ = filepath.EvalSymlinks(filepath.Join(usr.HomeDir, ".dex"))
+	site.DexEnabledFile = filepath.Join(site.DexPath, "enabled.yaml")
 
-	enabledSrc, err := ioutil.ReadFile(site.dexEnabledFile)
+	enabledSrc, err := ioutil.ReadFile(site.DexEnabledFile)
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +43,7 @@ func (site *DexSite) getConfig() map[string]map[string]bool {
 
 	for _, c := range [3]string{site.url, "utilities", "global"} {
 		// Update config object with available modules
-		dirPath := filepath.Join(site.dexPath, c)
+		dirPath := filepath.Join(site.DexPath, c)
 		var configKey string
 		if c == "global" {
 			configKey = c
@@ -51,11 +51,11 @@ func (site *DexSite) getConfig() map[string]map[string]bool {
 			configKey = site.url
 		}
 
-		log.Println("Reading modules from dexPath/" + c + "...")
+		// log.Println("Reading modules from DexPath/" + c + "...")
 		if files, err := ioutil.ReadDir(dirPath); err == nil {
 			for _, file := range files {
 				moduleKey := c + "/" + file.Name()
-				log.Println(" - module:", moduleKey)
+				// log.Println(" - module:", moduleKey)
 				if file.IsDir() {
 					if _, exists := config[configKey]; !exists {
 						config[configKey] = make(map[string]bool)
@@ -67,11 +67,11 @@ func (site *DexSite) getConfig() map[string]map[string]bool {
 		}
 
 		// Update config object with enabled modules
-		log.Println("Updating enabled modules...")
+		// log.Println("Updating enabled modules...")
 
 		if enabledModules, hasEnabled := site.yamlConfig[configKey]; hasEnabled {
 			for _, moduleKey := range enabledModules {
-				log.Println(" - module:", moduleKey)
+				// log.Println(" - module:", moduleKey)
 				bits := strings.Split(moduleKey, "/")
 
 				// Ignore invalid module names
@@ -80,7 +80,7 @@ func (site *DexSite) getConfig() map[string]map[string]bool {
 				}
 
 				// Make sure module exists
-				if _, err := os.Stat(filepath.Join(site.dexPath, moduleKey)); err == nil {
+				if _, err := os.Stat(filepath.Join(site.DexPath, moduleKey)); err == nil {
 					if _, exists := config[configKey]; !exists {
 						config[configKey] = make(map[string]bool)
 					}
@@ -88,7 +88,7 @@ func (site *DexSite) getConfig() map[string]map[string]bool {
 				}
 			}
 		} else {
-			log.Println("No enabled modules for " + site.url + ".")
+			// log.Println("No enabled modules for " + site.url + ".")
 		}
 	}
 
@@ -99,12 +99,12 @@ func getFilesAtPath(dirPath string, ext string) []string {
 	fileArray := []string{}
 	files, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		log.Println("Error!", err)
+		// log.Println("Error!", err)
 		return fileArray
 	}
 
 	if len(files) == 0 {
-		log.Println("No " + ext + " files in " + dirPath)
+		// log.Println("No " + ext + " files in " + dirPath)
 		return fileArray
 	}
 
@@ -117,7 +117,7 @@ func getFilesAtPath(dirPath string, ext string) []string {
 				continue
 			}
 
-			log.Println(" - " + filePath)
+			// log.Println(" - " + filePath)
 
 			fileSrc, err := ioutil.ReadFile(filePath)
 			if err != nil {
@@ -147,19 +147,19 @@ func getFilesAtPath(dirPath string, ext string) []string {
 
 func (site *DexSite) getFile(ext string) []byte {
 	// Add root-level site files
-	fileSlice := getFilesAtPath(filepath.Join(site.dexPath, site.url), ext)
+	fileSlice := getFilesAtPath(filepath.Join(site.DexPath, site.url), ext)
 
 	// Update config object with enabled modules
 	if enabledModules, hasEnabled := site.yamlConfig[site.url]; hasEnabled {
-		log.Println("Enabled modules for " + site.url + ":")
+		// log.Println("Enabled modules for " + site.url + ":")
 		for _, k := range enabledModules {
-			log.Println(" - module:", k)
-			dirPath := filepath.Join(site.dexPath, k)
+			// log.Println(" - module:", k)
+			dirPath := filepath.Join(site.DexPath, k)
 
 			fileSlice = append(fileSlice, getFilesAtPath(dirPath, ext)...)
 		}
 	} else {
-		log.Println("No enabled modules for " + site.url + ".")
+		// log.Println("No enabled modules for " + site.url + ".")
 	}
 
 	if len(fileSlice) == 0 {
@@ -191,7 +191,7 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 		"message": "Some kind of error occurred :(",
 	}
 
-	if _, err := os.Stat(filepath.Join(site.dexPath, toggledModule)); err != nil {
+	if _, err := os.Stat(filepath.Join(site.DexPath, toggledModule)); err != nil {
 		payload["message"] = "Invalid module :("
 		return stringifyOrDie(payload)
 	}
@@ -201,7 +201,7 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 	if enabledModules, hasEnabled := site.yamlConfig[site.url]; hasEnabled {
 		for i, module := range enabledModules {
 			if module == toggledModule {
-				log.Println("Disabled " + toggledModule + " for " + site.url)
+				// log.Println("Disabled " + toggledModule + " for " + site.url)
 				payload["action"] = "disabled"
 				payload["status"] = "success"
 				payload["message"] = "Disabled " + toggledModule + " for " + site.url
@@ -212,7 +212,7 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 	}
 
 	if _, e := payload["action"]; !e {
-		log.Println("Enabled " + toggledModule + " for " + site.url)
+		// log.Println("Enabled " + toggledModule + " for " + site.url)
 		payload["action"] = "enabled"
 		payload["status"] = "success"
 		payload["message"] = "Enabled " + toggledModule + " for " + site.url
@@ -228,7 +228,7 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 
 	d, _ := yaml.Marshal(site.yamlConfig)
 
-	f, err := os.Create(site.dexEnabledFile)
+	f, err := os.Create(site.DexEnabledFile)
 	if err != nil {
 		panic(err)
 	}
@@ -252,7 +252,4 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 	f.Sync()
 
 	return stringifyOrDie(payload)
-}
-
-func (site *DexSite) writeConfig() {
 }

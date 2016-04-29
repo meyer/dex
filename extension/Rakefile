@@ -30,6 +30,10 @@ task :rwb => [:reset] do
   system({'NODE_ENV' => NODE_ENV}, "#{RWB} static ./build/popover")
 end
 
+task :serve do
+  system({'NODE_ENV' => NODE_ENV}, "#{RWB} serve")
+end
+
 namespace :chrome do
   task :update_manifest do
     puts 'Generating manifest.json...'
