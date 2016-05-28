@@ -1,15 +1,15 @@
 /* global chrome:true */
 
-import getValidHostname from './lib/getValidHostname';
-import {dexURL} from './package.json';
+import getValidHostname from './lib/getValidHostname'
+import {dexURL} from './package.json'
 
 function updateTabStatus(tabID) {
   try {
     chrome.tabs.get(tabID, function(tab) {
-      console.log(`Tab ${tabID}:`, tab);
+      console.info(`Tab ${tabID}:`, tab)
 
-      const hostname = getValidHostname(tab.url);
-      const tabAction = hostname ? 'enable' : 'disable';
+      const hostname = getValidHostname(tab.url)
+      const tabAction = hostname ? 'enable' : 'disable'
 
       if (!hostname) {
         chrome.browserAction.setIcon({
@@ -18,25 +18,25 @@ function updateTabStatus(tabID) {
             19: 'assets/toolbar-button-icon-chrome-disabled.png',
             38: 'assets/toolbar-button-icon-chrome-disabled@2x.png',
           },
-        });
+        })
       }
-      console.log(`Tab action: ${tabAction}d tab (${hostname})`);
-    });
+      console.info(`Tab action: ${tabAction}d tab (${hostname})`)
+    })
   } catch (e) {
-    console.error('updateTabStatus error:', e);
+    console.error('updateTabStatus error:', e)
   }
 }
 
 chrome.tabs.onUpdated.addListener(function(tabID, props) {
   if (props.status === 'loading') {
-    updateTabStatus(tabID);
+    updateTabStatus(tabID)
   }
-});
+})
 
 chrome.tabs.onSelectionChanged.addListener(function(tabID, props) {
-  console.log('onSelectionChanged:', props);
-  updateTabStatus(tabID);
-});
+  console.info('onSelectionChanged:', props)
+  updateTabStatus(tabID)
+})
 
 /*
 
@@ -67,14 +67,14 @@ report-uri https://twitter.com/i/csp_report?a=NVQWGYLXFVZXO2LGOQ%3D%3D%3D%3D%3D%
 // https://w3c.github.io/webappsec-csp/#parse-serialized-policy
 function addDexToCSP (cspStr) {
   return cspStr.split(';').map(function(csp) {
-    csp = csp.trim();
+    csp = csp.trim()
     // TODO: check for 'none'? maybe?
-    const cspBits = csp.trim().split(' ');
+    const cspBits = csp.trim().split(' ')
     if (~['script-src', 'style-src', 'default-src'].indexOf(cspBits[0])) {
-      cspBits.push(dexURL);
+      cspBits.push(dexURL)
     }
-    return cspBits.join(' ');
-  }).join('; ');
+    return cspBits.join(' ')
+  }).join('; ')
 }
 
 chrome.webRequest.onHeadersReceived.addListener(function(info) {
@@ -87,41 +87,41 @@ chrome.webRequest.onHeadersReceived.addListener(function(info) {
   // // } else if (info.type === 'sub_frame') {
   //   //
   // } else {
-  //   console.log('[ ]', info.type);
+  //   console.info('[ ]', info.type);
   //   return;
   // }
 
   if (info.type !== 'main_frame') {
-    console.log('[ ]', info.type);
-    return;
+    console.info('[ ]', info.type)
+    return
   }
 
-  console.log('[x]', info.type);
-  const responseHeaders = [];
+  console.info('[x]', info.type)
+  const responseHeaders = []
 
   Object.keys(info.responseHeaders).forEach(function(header) {
-    const headerName = info.responseHeaders[header].name;
-    const headerVal = info.responseHeaders[header].value;
+    const headerName = info.responseHeaders[header].name
+    const headerVal = info.responseHeaders[header].value
 
     switch (headerName.toLowerCase()) {
     case 'content-security-policy':
       responseHeaders.push({
         name: headerName,
         value: addDexToCSP(headerVal),
-      });
-      break;
+      })
+      break
 
     case 'content-security-policy-report-only':
-      break;
+      break
 
     default:
-      responseHeaders.push(info.responseHeaders[header]);
+      responseHeaders.push(info.responseHeaders[header])
     }
-  });
+  })
 
-  return {responseHeaders};
+  return {responseHeaders}
 }, {
   urls: ['http://*/*', 'https://*/*'],
 }, [
   'responseHeaders', 'blocking',
-]);
+])

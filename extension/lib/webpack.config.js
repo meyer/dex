@@ -1,14 +1,12 @@
-'use strict';
+const webpack = require('webpack')
 
-const webpack = require('webpack');
-
-const NODE_ENV = process.env.NODE_ENV || 'production';
+const NODE_ENV = process.env.NODE_ENV || 'production'
 
 const webpackPlugins = [
   new webpack.DefinePlugin({
     'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
   }),
-];
+]
 
 if (NODE_ENV === 'production') {
   webpackPlugins.push(
@@ -18,7 +16,7 @@ if (NODE_ENV === 'production') {
       },
     }),
     new webpack.optimize.OccurenceOrderPlugin()
-  );
+  )
 }
 
 const webpackConfig = {
@@ -45,6 +43,6 @@ const webpackConfig = {
       },
     ],
   },
-};
+}
 
-module.exports = webpackConfig;
+module.exports = webpackConfig

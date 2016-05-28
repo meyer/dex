@@ -16,8 +16,13 @@ WEBPACK = [
   File.expand_path('./lib/webpack.config.js')
 ]
 RWB = './node_modules/.bin/rwb'
-NODE_ENV = ENV['DEV_MODE'] ? 'development' : 'production'
-puts "NODE_ENV: #{NODE_ENV}"
+
+SYSTEM_ENV = {
+  'NODE_ENV' => ENV['DEV_MODE'] ? 'development' : 'production',
+  'RWB_DISABLE_CACHEBUSTER' => 'true',
+}
+
+puts "NODE_ENV: #{SYSTEM_ENV['NODE_ENV']}"
 
 task :reset do
   puts 'Resetting build directory...'
@@ -27,11 +32,11 @@ end
 
 task :rwb => [:reset] do
   puts 'Generating popover with rwb...'
-  system({'NODE_ENV' => NODE_ENV}, "#{RWB} static ./build/popover")
+  system(SYSTEM_ENV, "#{RWB} static ./build/popover")
 end
 
 task :serve do
-  system({'NODE_ENV' => NODE_ENV}, "#{RWB} serve")
+  system(SYSTEM_ENV, "#{RWB} serve")
 end
 
 namespace :chrome do
@@ -54,7 +59,7 @@ task :webpack do
   Dir.glob('./*.js').reject {|f| File.basename(f).start_with? '_'}.each do |jsFile|
     puts "Bundling '#{jsFile}' with webpack..."
     basename = File.basename(jsFile)
-    unless system({'NODE_ENV' => NODE_ENV}, (WEBPACK + [jsFile, File.join('build', basename)]).shelljoin)
+    unless system(SYSTEM_ENV, (WEBPACK + [jsFile, File.join('build', basename)]).shelljoin)
       puts "Error running webpack for '#{jsFile}'!"
     end
   end

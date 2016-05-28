@@ -1,20 +1,20 @@
 /* global chrome */
 
 // Modules
-import React from 'react';
-import {InlineBlock, Flex, Block} from 'jsxstyle';
-import xhr from 'xhr';
+import React from 'react'
+import {InlineBlock, Flex, Block} from 'jsxstyle'
+import xhr from 'xhr'
 
 // Components
-import Switch from './Switch';
+import Switch from './Switch'
 
 // Utils
-import getValidHostname from '../../lib/getValidHostname';
+import getValidHostname from '../../lib/getValidHostname'
 
 // Styles
-import '../style.css';
+import '../style.css'
 
-import {dexURL} from '../../package.json';
+import {dexURL} from '../../package.json'
 
 const Popover = React.createClass({
   getInitialState: () => ({
@@ -24,7 +24,7 @@ const Popover = React.createClass({
     data: null,
   }),
 
-  getData: function() {
+  getData() {
     // Chrome extension
     if (
       window &&
@@ -33,102 +33,102 @@ const Popover = React.createClass({
       window.chrome.tabs.query
     ) {
       chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        this.getDataForURL(tabs[0].url);
-      }.bind(this));
+        this.getDataForURL(tabs[0].url)
+      }.bind(this))
 
     // Demotron
     } else {
       // Testing this requires running Chrome with --disable-web-security
-      this.getDataForURL('http://dribbble.com');
+      this.getDataForURL('http://dribbble.com')
     }
   },
 
-  updateLastModifiedDate: function(hostname) {
-    const opts = {};
-    opts[`lastUpdated-${hostname}`] = true;
+  updateLastModifiedDate(hostname) {
+    const opts = {}
+    opts[`lastUpdated-${hostname}`] = true
 
     chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
       chrome.tabs.sendMessage(tabs[0].id, opts, function(response) {
         if (response) {
-          console.log('Response:', response);
+          console.info('Response:', response)
         } else {
-          console.log('Pinged current tab');
+          console.info('Pinged current tab')
         }
-      });
-    });
+      })
+    })
   },
 
-  componentDidMount: function() {
-    this.getData();
+  componentDidMount() {
+    this.getData()
   },
 
-  getDataForURL: function(url) {
-    const hostname = getValidHostname(url);
+  getDataForURL(url) {
+    const hostname = getValidHostname(url)
 
     if (!hostname) {
-      console.error('Invalid URL:', url);
-      this.setState({loading: false});
-      return;
+      console.error('Invalid URL:', url)
+      this.setState({loading: false})
+      return
     }
 
-    this.setState({hostname, xhrError: false, loading: true});
+    this.setState({hostname, xhrError: false, loading: true})
 
     xhr.get(`${dexURL}/${hostname}.json`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
-        console.error(xhrError);
+        console.error(xhrError)
       }
 
-      this.setState({data, xhrError, loading: false});
-    }.bind(this));
+      this.setState({data, xhrError, loading: false})
+    }.bind(this))
   },
 
-  toggleModuleForHostname: function(moduleName, hostname) {
+  toggleModuleForHostname(moduleName, hostname) {
     if (this.state.loading) {
-      console.warn('XHR already in progress');
-      return;
+      console.warn('XHR already in progress')
+      return
     }
 
-    console.log('moduleName:', moduleName);
+    console.info('moduleName:', moduleName)
 
-    this.setState({xhrError: false, loading: true});
+    this.setState({xhrError: false, loading: true})
 
     xhr.get(`${dexURL}/${hostname}.json?toggle=${moduleName}`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
-        console.error(xhrError);
-        this.setState({xhrError, loading: false});
-        return;
+        console.error(xhrError)
+        this.setState({xhrError, loading: false})
+        return
       }
 
       if (resp.statusCode === 200) {
         if (data.status === 'success') {
-          const updatedData = this.state.data;
-          updatedData[hostname][moduleName] = data.action === 'enabled';
+          const updatedData = this.state.data
+          updatedData[hostname][moduleName] = data.action === 'enabled'
 
-          this.setState({data: updatedData, xhrError: false, loading: false});
-          this.updateLastModifiedDate(hostname);
-          console.log(data.message);
+          this.setState({data: updatedData, xhrError: false, loading: false})
+          this.updateLastModifiedDate(hostname)
+          console.info(data.message)
         } else {
-          this.setState({xhrError: false, loading: false});
-          console.error(data.message);
+          this.setState({xhrError: false, loading: false})
+          console.error(data.message)
         }
       }
-    }.bind(this));
+    }.bind(this))
   },
 
-  buildChildrenForDomain: function(hostname) {
+  buildChildrenForDomain(hostname) {
     if (!this.state.data) {
-      console.log(`No data for "${hostname}"`);
-      return null;
+      console.info(`No data for "${hostname}"`)
+      return null
     }
 
-    console.log('data:', this.state.data);
+    console.info('data:', this.state.data)
 
     if (!this.state.data[hostname]) {
-      console.error(`Invalid hostname "${hostname}". Your options: ${Object.keys(this.state.data).join(', ')}`);
-      return;
+      console.error(`Invalid hostname "${hostname}". Your options: ${Object.keys(this.state.data).join(', ')}`)
+      return
     }
 
-    const available = Object.keys(this.state.data[hostname]);
+    const available = Object.keys(this.state.data[hostname])
 
     if (available.length === 0) {
       return (
@@ -136,13 +136,13 @@ const Popover = React.createClass({
           padding={20}>
           No modules exist for <strong>{hostname}</strong>.
         </Block>
-      );
+      )
     }
 
     const children = available.map(function(k, idx) {
-      let badge, editable = true;
+      let badge, editable = true
 
-      const [modCategory, modName] = k.split('/');
+      const [modCategory, modName] = k.split('/')
 
       if (modCategory === 'utilities') {
         // alignSelf="flex-start" ??
@@ -163,9 +163,9 @@ const Popover = React.createClass({
             boxShadow="0 0 0 1px rgba(0,0,0,0.14)">
             Utility
           </InlineBlock>
-        );
+        )
       } else {
-        editable = modCategory === hostname;
+        editable = modCategory === hostname
       }
 
       return (
@@ -198,8 +198,8 @@ const Popover = React.createClass({
             />
           </Block>
         </Flex>
-      );
-    }.bind(this));
+      )
+    }.bind(this))
 
     return (
       <Block>
@@ -219,26 +219,26 @@ const Popover = React.createClass({
           {children}
         </Block>
       </Block>
-    );
+    )
   },
 
-  render: function(){
+  render(){
     if (this.state.xhrError) {
       return (
         <Block whiteSpace="nowrap" padding={15}>XHR Error broh</Block>
-      );
+      )
     }
 
     if (this.state.loading && !this.state.data) {
       return (
         <Block whiteSpace="nowrap" padding={15}>Loading{'\u2026'}</Block>
-      );
+      )
     }
 
     if (!this.state.hostname) {
       return (
         <Block whiteSpace="nowrap" padding={15}>Dex is disabled for this domain</Block>
-      );
+      )
     }
 
     return (
@@ -248,8 +248,8 @@ const Popover = React.createClass({
         <Block marginBottom={8}>{this.buildChildrenForDomain(this.state.hostname)}</Block>
         <Block>{this.buildChildrenForDomain('global')}</Block>
       </Block>
-    );
+    )
   },
-});
+})
 
-export default Popover;
+export default Popover
