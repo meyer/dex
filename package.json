@@ -1,0 +1,40 @@
+{
+  "name": "Dex",
+  "daemon": "dexd",
+  "description": "Hack the planet!",
+  "author": "Mike Meyer",
+  "version": "2.0.0-rc.1",
+  "build": 8,
+  "last_release": 0,
+  "license": "ISC",
+  "private": true,
+  "homepage": "https://github.com/meyer/dex",
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:meyer/dex.git"
+  },
+  "scripts": {
+    "webpack": "webpack --config ./extension/lib/webpack.config.js",
+    "rwb": "RWB_DISABLE_CACHEBUSTER=true rwb"
+  },
+  "dependencies": {
+    "babel-loader": "^6.2.4",
+    "babel-plugin-transform-object-rest-spread": "^6.8.0",
+    "babel-preset-es2015": "^6.9.0",
+    "jsxstyle": "0.0.18",
+    "react": "^15.1.0",
+    "react-dom": "^15.1.0",
+    "rwb": "github:meyer/rwb#opinions",
+    "webpack-require": "0.0.16",
+    "xhr": "^2.2.0"
+  },
+  "rwb": {
+    "dom_node": "#.dex-popover",
+    "main": "./extension/popover/components/Popover.js",
+    "static_generator": "./extension/popover/render-static.js"
+  },
+  "dex": {
+    "host": "localhost",
+    "port": 3131
+  }
+}

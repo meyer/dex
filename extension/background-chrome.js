@@ -1,7 +1,6 @@
 /* global chrome:true */
 
 import getValidHostname from './lib/getValidHostname'
-import {dexURL} from './package.json'
 
 function updateTabStatus(tabID) {
   try {
@@ -71,14 +70,14 @@ function addDexToCSP (cspStr) {
     // TODO: check for 'none'? maybe?
     const cspBits = csp.trim().split(' ')
     if (~['script-src', 'style-src', 'default-src'].indexOf(cspBits[0])) {
-      cspBits.push(dexURL)
+      cspBits.push(process.env.DEX_URL)
     }
     return cspBits.join(' ')
   }).join('; ')
 }
 
 chrome.webRequest.onHeadersReceived.addListener(function(info) {
-  // if (~info.url.indexOf(dexURL)) {
+  // if (~info.url.indexOf(process.env.DEX_URL)) {
   //   //
   // } else if (info.type === 'xmlhttprequest') {
   //   //

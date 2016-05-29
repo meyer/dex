@@ -2,7 +2,7 @@
 
 // Modules
 import React from 'react'
-import {InlineBlock, Flex, Block} from 'jsxstyle'
+import {InlineBlock, Block} from 'jsxstyle'
 import xhr from 'xhr'
 
 // Components
@@ -14,7 +14,8 @@ import getValidHostname from '../../lib/getValidHostname'
 // Styles
 import '../style.css'
 
-import {dexURL} from '../../package.json'
+import {dex} from '../../../package.json'
+const dexURL = `https://${dex.host}:${dex.port}`
 
 const Popover = React.createClass({
   getInitialState: () => ({
@@ -168,18 +169,21 @@ const Popover = React.createClass({
         editable = modCategory === hostname
       }
 
+      // TODO: fix jsxtyle bug with `display` not being set
       return (
-        <Flex
-          alignItems="center"
-          key={`${hostname}-${k}-${idx}`}
-          component="li"
-          position="relative"
-          fontSize={12}
-          lineHeight="14px"
-          backgroundColor="#FFF"
-          marginTop={1}
-          marginBottom={1}
-          padding="6px 8px">
+        <li style={{
+          display: 'flex',
+          alignItems: 'center',
+          key: `${hostname}-${k}-${idx}`,
+          component: 'li',
+          position: 'relative',
+          fontSize: 12,
+          lineHeight: '14px',
+          backgroundColor: '#FFF',
+          marginTop: 1,
+          marginBottom: 1,
+          padding: '6px 8px',
+        }}>
           {badge}
           <Block
             padding="1px 0"
@@ -197,7 +201,7 @@ const Popover = React.createClass({
               editable={editable}
             />
           </Block>
-        </Flex>
+        </li>
       )
     }.bind(this))
 

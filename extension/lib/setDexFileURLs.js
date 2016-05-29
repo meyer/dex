@@ -1,7 +1,5 @@
 /* global chrome */
 
-import {dexURL} from '../package.json'
-
 export default function setDexFileURLs(hostname, js, css) {
   const hostKey = `lastUpdated-${hostname}`
   const opts = {}
@@ -19,8 +17,8 @@ export default function setDexFileURLs(hostname, js, css) {
 
     console.info(`DEX: ${hostKey}`, opts[hostKey])
 
-    js.src = `${dexURL}/${opts[hostKey]}/${hostname}.js`
-    css.href = `${dexURL}/${opts[hostKey]}/${hostname}.css`
+    js.src = `${process.env.DEX_URL}/${opts[hostKey]}/${hostname}.js`
+    css.href = `${process.env.DEX_URL}/${opts[hostKey]}/${hostname}.css`
   })
 
   // Listen for config changes, live-update CSS
@@ -28,7 +26,7 @@ export default function setDexFileURLs(hostname, js, css) {
     if (request[hostKey]) {
       opts[hostKey] = Date.now()
 
-      css.href = `${dexURL}/${opts[hostKey]}/${hostname}.css`
+      css.href = `${process.env.DEX_URL}/${opts[hostKey]}/${hostname}.css`
 
       chrome.storage.local.set(opts, function() {
         console.info(`Updated ${hostKey} to`, opts[hostKey])

@@ -7,8 +7,6 @@ import (
 	"time"
 )
 
-const DexVersion = "2.0.0"
-
 var contentTypes = map[string]string{
 	"js":   "application/javascript; charset=utf-8",
 	"css":  "text/css; charset=utf-8",

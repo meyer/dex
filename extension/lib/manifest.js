@@ -1,11 +1,25 @@
-const pkg = require('../package.json')
+const pkg = require('../../package.json')
+
+let cspArray = [
+  `default-src ${process.env.DEX_URL}`,
+  `style-src 'unsafe-inline' ${process.env.DEX_URL}`,
+]
+
+if (process.env.NODE_ENV === 'development') {
+  cspArray = [
+    `default-src blob: ${process.env.DEX_URL} http://localhost:3000`,
+    `style-src  'unsafe-inline' blob: ${process.env.DEX_URL} http://localhost:3000`,
+    `script-src 'unsafe-eval' blob: ${process.env.DEX_URL} http://localhost:3000`,
+    `connect-src blob: ${process.env.DEX_URL} ws://localhost:3000 http://localhost:3000`,
+  ]
+}
 
 module.exports = {
   name: pkg.name,
   manifest_version: 2,
-  version: pkg.version,
-  description: 'Hello!',
-  homepage_url: 'http://github.com/meyer/dex-extension',
+  version: process.env.DEX_VERSION,
+  description: pkg.description,
+  homepage_url: pkg.homepage,
 
   icons: {
     32: 'assets/Icon-32.png',
@@ -31,10 +45,7 @@ module.exports = {
     persistent: true,
   },
 
-  content_security_policy: [
-    `default-src ${pkg.dexURL}`,
-    `style-src 'unsafe-inline' ${pkg.dexURL}`,
-  ].join('; '),
+  content_security_policy: cspArray.join('; '),
 
   content_scripts: [{
     all_frames: true,

@@ -1,18 +1,17 @@
 const webpack = require('webpack')
 
-const NODE_ENV = process.env.NODE_ENV || 'production'
-
 const webpackPlugins = [
   new webpack.DefinePlugin({
-    'process.env.NODE_ENV': JSON.stringify(NODE_ENV),
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    'process.env.DEX_URL': JSON.stringify(process.env.DEX_URL),
   }),
 ]
 
-if (NODE_ENV === 'production') {
+if (process.env.NODE_ENV === 'production') {
   webpackPlugins.push(
     new webpack.optimize.UglifyJsPlugin({
       compress: {
-        drop_console: true,
+        // drop_console: true,
       },
     }),
     new webpack.optimize.OccurenceOrderPlugin()

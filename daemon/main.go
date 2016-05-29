@@ -15,8 +15,12 @@ import (
 )
 
 var (
-	runPtr     = flag.Bool("run", false, "start dexd "+DexVersion)
+	runPtr     = flag.Bool("run", false, "start dexd "+dexVersion)
 	installPtr = flag.Bool("install", false, "install launch agent")
+	verbosePtr = flag.Bool("verbose", false, "enable verbose mode")
+	//
+	dexVersion string
+	dexPort    string
 )
 
 func main() {
@@ -31,8 +35,8 @@ func main() {
 		r.HandleFunc("/{cachebuster:\\d+}/empty.{ext:(js|css)}", emptyHandler)
 		r.HandleFunc("/{cachebuster:\\d+}/{url:(global|.+\\.[^\\.]+)}.{ext:(js|css)}", siteHandler)
 
-		certPem, _ := Asset("ssl/cert.pem")
-		keyPem, _ := Asset("ssl/key.pem")
+		certPem, _ := Asset("assets/cert.pem")
+		keyPem, _ := Asset("assets/key.pem")
 		keyPair, _ := tls.X509KeyPair(certPem, keyPem)
 
 		tlsConfig := &tls.Config{
@@ -40,14 +44,19 @@ func main() {
 		}
 		tlsConfig.Certificates[0] = keyPair
 
-		log.Println("dexd " + DexVersion + " at your service")
-		server := &http.Server{Addr: ":3131", Handler: r, TLSConfig: tlsConfig}
+		log.Println("dexd " + dexVersion + " at your service")
+		server := &http.Server{
+			Addr:      dexPort,
+			Handler:   r,
+			TLSConfig: tlsConfig,
+		}
 		err := server.ListenAndServeTLS("", "")
 		log.Fatal(err)
 
 	case *installPtr:
 		log.Println("Installing launch agent to ~/Library/LaunchAgents")
-		plist, err := template.ParseFiles("launchagent.plist")
+		plist_asset, _ := Asset("assets/launchagent.plist")
+		plist_template, err := template.New("launchagent").Parse(string(plist_asset))
 		if err != nil {
 			panic(err)
 		}
@@ -60,7 +69,7 @@ func main() {
 		launchAgentFile := filepath.Join(usr.HomeDir, "/Library/LaunchAgents/fm.meyer.dex.plist")
 
 		var doc bytes.Buffer
-		plist.Execute(&doc, map[string]string{
+		plist_template.Execute(&doc, map[string]string{
 			"dexBinPath":    dexBinPath,
 			"dexPath":       dexPath,
 			"stdoutLogPath": stdoutLogPath,
