@@ -11,7 +11,7 @@
     <key>ProgramArguments</key>
     <array>
       <string>{{ .dexBinPath }}</string>
-      <string>--run</string>
+      <string>-run</string>
     </array>
 
     <key>StandardOutPath</key>

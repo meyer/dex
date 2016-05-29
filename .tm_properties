@@ -1,3 +1,5 @@
+GOPATH="/usr/local/bin/go"
+
 exclude="{$exclude,extension/build}"
 
 ["*.js"]

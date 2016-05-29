@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"flag"
 	"github.com/gorilla/mux"
 	"github.com/kardianos/osext"
@@ -30,8 +31,18 @@ func main() {
 		r.HandleFunc("/{cachebuster:\\d+}/empty.{ext:(js|css)}", emptyHandler)
 		r.HandleFunc("/{cachebuster:\\d+}/{url:(global|.+\\.[^\\.]+)}.{ext:(js|css)}", siteHandler)
 
+		certPem, _ := Asset("ssl/cert.pem")
+		keyPem, _ := Asset("ssl/key.pem")
+		keyPair, _ := tls.X509KeyPair(certPem, keyPem)
+
+		tlsConfig := &tls.Config{
+			Certificates: make([]tls.Certificate, 1),
+		}
+		tlsConfig.Certificates[0] = keyPair
+
 		log.Println("dexd " + DexVersion + " at your service")
-		err := http.ListenAndServeTLS(":3131", "cert.pem", "key.pem", r)
+		server := &http.Server{Addr: ":3131", Handler: r, TLSConfig: tlsConfig}
+		err := server.ListenAndServeTLS("", "")
 		log.Fatal(err)
 
 	case *installPtr:

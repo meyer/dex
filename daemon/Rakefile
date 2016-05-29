@@ -1,0 +1,22 @@
+PWD = File.dirname(__FILE__)
+Dir.chdir PWD
+
+desc "Run dexd from source"
+task :run do
+  system "go run *.go -run"
+end
+
+desc "Build dexd binary"
+task :build do
+  system "go build -o dexd *.go"
+end
+
+desc "Compile ./ssl/ to ./ssl.go"
+task :ssl2bindata do
+  # go get -u github.com/jteeuwen/go-bindata/...
+  system "$GOPATH/bin/go-bindata -o ssl.go ssl/"
+end
+
+task :ssl2bindata_debug do
+  system "$GOPATH/bin/go-bindata -debug -o ssl.go ssl/"
+end
