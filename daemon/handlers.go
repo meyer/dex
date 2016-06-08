@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"net/http"
-	"time"
 )
 
 var contentTypes = map[string]string{
@@ -13,39 +12,28 @@ var contentTypes = map[string]string{
 	"json": "application/json; charset=utf-8",
 }
 
-func siteHandler(w http.ResponseWriter, r *http.Request) {
+func dexfileHandler(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	url, hasURL := vars["url"]
+	hostname, hasHostname := vars["hostname"]
 	ext, hasExt := vars["ext"]
-	cachebuster, hasCB := vars["cachebuster"]
+	_, hasCB := vars["cachebuster"]
 
-	if !hasURL || !hasExt {
-		panic("Required URL params `url` and `ext` both need to be set")
+	if !hasHostname || !hasExt {
+		panic("Required URL params `hostname` and `ext` both need to be set")
 		return
 	}
 
-	site := DexSite{url: url}
+	site := DexSite{}
 	site.init()
-
-	// Set expiration headers
-	if hasCB {
-		w.Header().Set("Last-Modified", time.Date(2000, 1, 1, 12, 0, 0, 0, time.UTC).Format(time.RFC1123))
-		w.Header().Set("Cache-Control", "public, max-age=2175984000")
-		w.Header().Set("Expires", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))
-	} else {
-		w.Header().Set("Last-Modified", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))
-		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0")
-		w.Header().Set("Expires", time.Now().AddDate(-69, 0, 0).Format(time.RFC1123))
-	}
 
 	w.Header().Set("Content-Type", contentTypes[ext])
 
 	switch ext {
 	case "js", "css":
-		fileContents := site.getFile(ext)
+		fileContents := site.getFileForHostname(ext, hostname)
 		if fileContents == nil {
-			if cachebuster != "" {
+			if hasCB {
 				http.Redirect(w, r, "/69/empty."+ext, http.StatusMovedPermanently)
 			} else {
 				http.Redirect(w, r, "/69/empty."+ext, http.StatusFound)
@@ -54,15 +42,25 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Write(fileContents)
 
-	case "json":
-		if moduleName := r.FormValue("toggle"); moduleName != "" {
-			w.Write(site.toggleModule(moduleName))
-		} else {
-			w.Write(site.getConfigAsJSON())
-		}
-
 	default:
 		panic(fmt.Sprintf("Unrecognised extension: %s", ext))
+	}
+}
+
+func configHandler(w http.ResponseWriter, r *http.Request) {
+	site := DexSite{}
+	site.init()
+
+	w.Header().Set("Content-Type", contentTypes["json"])
+
+	if moduleName := r.FormValue("toggle"); moduleName != "" {
+		if hostname := r.FormValue("hostname"); hostname != "" {
+			w.Write(site.toggleModuleForHostname(moduleName, hostname))
+		} else {
+			panic("Hostname must be set for site.toggleModuleForHostname")
+		}
+	} else {
+		w.Write(site.getConfigAsJSON())
 	}
 }
 

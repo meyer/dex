@@ -1,4 +1,5 @@
 require 'json'
+require 'shellwords'
 
 PROJECT_DIR = File.dirname(__FILE__)
 
@@ -58,6 +59,13 @@ task :ask_for_new_version_number do
   else
     puts "Error: invalid version number!"
   end
+end
+
+task :run_chrome_unsafe do
+  system [
+    File.expand_path("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+    "--disable-web-security"
+  ].shelljoin
 end
 
 task :build => [:set_dev_env, "ext:chrome:build", "daemon:build"]

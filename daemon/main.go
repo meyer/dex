@@ -11,27 +11,65 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"runtime"
 	"text/template"
+	"time"
 )
 
 var (
 	runPtr     = flag.Bool("run", false, "start dexd "+dexVersion)
-	installPtr = flag.Bool("install", false, "install launch agent")
+	installPtr *bool
 	dexVersion string
 	dexPort    string
 )
 
+func DexHandler(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Log request
+		glog.V(1).Info(r.Method, " ", r.URL)
+
+		// Set common headers
+		w.Header().Set("Dex-Version", dexVersion)
+		w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+		h.ServeHTTP(w, r)
+	})
+}
+
+func NeverExpire(f http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Last-Modified", time.Date(2000, 1, 1, 12, 0, 0, 0, time.UTC).Format(time.RFC1123))
+		w.Header().Set("Cache-Control", "public, max-age=2175984000")
+		w.Header().Set("Expires", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))
+		f(w, r)
+	})
+}
+
+func ImmediatelyExpire(f http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Last-Modified", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, post-check=0, pre-check=0")
+		w.Header().Set("Expires", time.Now().AddDate(-69, 0, 0).Format(time.RFC1123))
+		f(w, r)
+	})
+}
+
 func main() {
+	if runtime.GOOS == "darwin" {
+		installPtr = flag.Bool("install", false, "install launch agent")
+	}
+
 	flag.Parse()
+	// hack to make glog log to stderr by default
+	flag.Lookup("logtostderr").Value.Set("true")
 
 	switch {
 	case *runPtr:
 		r := mux.NewRouter()
 
-		r.HandleFunc("/", indexHandler)
-		r.HandleFunc("/{url:.+\\.[^\\.]+}.{ext:json}", siteHandler)
-		r.HandleFunc("/{cachebuster:\\d+}/empty.{ext:(js|css)}", emptyHandler)
-		r.HandleFunc("/{cachebuster:\\d+}/{url:(global|.+\\.[^\\.]+)}.{ext:(js|css)}", siteHandler)
+		r.HandleFunc("/", ImmediatelyExpire(indexHandler))
+		r.HandleFunc("/config.json", ImmediatelyExpire(configHandler))
+		r.HandleFunc("/{cachebuster:\\d+}/empty.{ext:(js|css)}", NeverExpire(emptyHandler))
+		r.HandleFunc("/{cachebuster:\\d+}/{hostname:(global|.+\\.[^\\.]+)}.{ext:(js|css)}", NeverExpire(dexfileHandler))
 
 		certPem, _ := Asset("assets/cert.pem")
 		keyPem, _ := Asset("assets/key.pem")
@@ -45,8 +83,10 @@ func main() {
 		glog.Info("dexd " + dexVersion + " at your service")
 		server := &http.Server{
 			Addr:      dexPort,
-			Handler:   r,
+			Handler:   DexHandler(r),
 			TLSConfig: tlsConfig,
+			// Disable HTTP2
+			TLSNextProto: make(map[string]func(*http.Server, *tls.Conn, http.Handler)),
 		}
 		err := server.ListenAndServeTLS("", "")
 		glog.Fatal(err)

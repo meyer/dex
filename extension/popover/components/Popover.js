@@ -15,36 +15,51 @@ import getValidHostname from '../../lib/getValidHostname'
 import '../style.css'
 
 import {dex} from '../../../package.json'
+import {flatten, union} from 'lodash'
 const dexURL = `https://${dex.host}:${dex.port}`
 
 const Popover = React.createClass({
-  getInitialState: () => ({
-    loading: true,
-    xhrError: null,
-    hostname: null,
-    data: null,
-  }),
+  getInitialState() {
+    return {
+      loading: true,
+      xhrError: null,
+      hostname: null,
+      data: null,
+    }
+  },
 
-  getData() {
+  setHostname() {
     // Chrome extension
     if (
-      window &&
+      typeof window !== 'undefined' &&
       typeof window.chrome === 'object' &&
       typeof window.chrome.tabs === 'object' &&
       window.chrome.tabs.query
     ) {
-      chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-        this.getDataForURL(tabs[0].url)
+      window.chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+        const hostname = getValidHostname(tabs[0].url)
+        this.setState({hostname})
       }.bind(this))
 
     // Demotron
     } else {
       // Testing this requires running Chrome with --disable-web-security
-      this.getDataForURL('http://dribbble.com')
+      // rake run_chrome_unsafe
+      const hostname = getValidHostname('http://test.dex.meyer.fm')
+      this.setState({hostname})
     }
   },
 
   updateLastModifiedDate(hostname) {
+    if (
+      typeof window === 'undefined' ||
+      typeof window.chrome !== 'object' ||
+      typeof window.chrome.tabs !== 'object' ||
+      !window.chrome.tabs.query
+    ) {
+      return
+    }
+
     const opts = {}
     opts[`lastUpdated-${hostname}`] = true
 
@@ -59,22 +74,17 @@ const Popover = React.createClass({
     })
   },
 
-  componentDidMount() {
-    this.getData()
+  componentWillMount() {
+    if (typeof window !== 'undefined') {
+      this.setHostname()
+      this.fetchData()
+    }
   },
 
-  getDataForURL(url) {
-    const hostname = getValidHostname(url)
+  fetchData() {
+    this.setState({xhrError: false, loading: true})
 
-    if (!hostname) {
-      console.error('Invalid URL:', url)
-      this.setState({loading: false})
-      return
-    }
-
-    this.setState({hostname, xhrError: false, loading: true})
-
-    xhr.get(`${dexURL}/${hostname}.json`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}/config.json`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError)
       }
@@ -90,10 +100,9 @@ const Popover = React.createClass({
     }
 
     console.info('moduleName:', moduleName)
-
     this.setState({xhrError: false, loading: true})
 
-    xhr.get(`${dexURL}/${hostname}.json?toggle=${moduleName}`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}/config.json?toggle=${moduleName}&hostname=${hostname}`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError)
         this.setState({xhrError, loading: false})
@@ -101,13 +110,16 @@ const Popover = React.createClass({
       }
 
       if (resp.statusCode === 200) {
-        if (data.status === 'success') {
-          const updatedData = this.state.data
-          updatedData[hostname][moduleName] = data.action === 'enabled'
-
-          this.setState({data: updatedData, xhrError: false, loading: false})
+        if (typeof data === 'object') {
+          this.setState({
+            data: {
+              ...this.state.data,
+              enabled: data,
+            },
+            xhrError: false,
+            loading: false,
+          })
           this.updateLastModifiedDate(hostname)
-          console.info(data.message)
         } else {
           this.setState({xhrError: false, loading: false})
           console.error(data.message)
@@ -122,31 +134,27 @@ const Popover = React.createClass({
       return null
     }
 
-    console.info('data:', this.state.data)
+    const {available, enabled} = this.state.data
+    const children = []
+    let domains = [hostname]
 
-    if (!this.state.data[hostname]) {
-      console.error(`Invalid hostname "${hostname}". Your options: ${Object.keys(this.state.data).join(', ')}`)
-      return
+    if (hostname != 'global') {
+      // split sub.domain.com into [sub.domain.com, domain.com, com]
+      domains = [].concat(hostname.split('.').map((e,i,r) => r.slice(i).join('.')), 'utilities')
     }
 
-    const available = Object.keys(this.state.data[hostname])
+    const availableMods = flatten(domains.map((m) => available[m]).filter((f) => f))
+    const enabledMods = enabled[hostname] || []
 
-    if (available.length === 0) {
-      return (
-        <Block
-          padding={20}>
-          No modules exist for <strong>{hostname}</strong>.
-        </Block>
-      )
-    }
+    const mods = union(enabledMods, availableMods).sort()
 
-    const children = available.map(function(k, idx) {
+    mods.forEach(function(k, idx) {
       let badge, editable = true
 
       const [modCategory, modName] = k.split('/')
+      let prefix
 
       if (modCategory === 'utilities') {
-        // alignSelf="flex-start" ??
         badge = (
           <InlineBlock
             flexGrow={0}
@@ -166,12 +174,17 @@ const Popover = React.createClass({
           </InlineBlock>
         )
       } else {
-        editable = modCategory === hostname
+        editable = !!~availableMods.indexOf(k)
+        if (modCategory != hostname) {
+          prefix = (
+            <span style={{opacity: 0.4}}>{modCategory} / </span>
+          )
+        }
       }
 
       // TODO: fix jsxtyle bug with `display` not being set
-      return (
-        <li style={{
+      children.push(
+        <li key={k} style={{
           display: 'flex',
           alignItems: 'center',
           key: `${hostname}-${k}-${idx}`,
@@ -189,6 +202,7 @@ const Popover = React.createClass({
             padding="1px 0"
             flexGrow={1}
             flexShrink={1}>
+            {prefix}
             {modName}
           </Block>
           <Block
@@ -196,14 +210,23 @@ const Popover = React.createClass({
             flexShrink={0}>
             <Switch
               marginLeft={7}
-              onClick={() => this.toggleModuleForHostname(k, hostname)}
-              enabled={this.state.data[hostname][k]}
+              onClick={() => editable && this.toggleModuleForHostname(k, hostname)}
+              enabled={enabled[hostname] && !!~enabled[hostname].indexOf(k)}
               editable={editable}
             />
           </Block>
         </li>
       )
     }.bind(this))
+
+    if (children.length === 0) {
+      return (
+        <Block
+          padding={20}>
+          No modules exist for <strong>{hostname}</strong>.
+        </Block>
+      )
+    }
 
     return (
       <Block>
@@ -217,6 +240,8 @@ const Popover = React.createClass({
           {hostname}
         </Block>
         <Block
+          display="flex"
+          flexDirection="row"
           component="ul"
           backgroundColor="rgba(0,0,0,0.04)"
           overflow="hidden">
