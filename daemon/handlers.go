@@ -31,7 +31,7 @@ func siteHandler(w http.ResponseWriter, r *http.Request) {
 	// Set expiration headers
 	if hasCB {
 		w.Header().Set("Last-Modified", time.Date(2000, 1, 1, 12, 0, 0, 0, time.UTC).Format(time.RFC1123))
-		w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d", 60*60*24*365*69))
+		w.Header().Set("Cache-Control", "public, max-age=2175984000")
 		w.Header().Set("Expires", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))
 	} else {
 		w.Header().Set("Last-Modified", time.Now().AddDate(69, 0, 0).Format(time.RFC1123))

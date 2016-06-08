@@ -29,6 +29,9 @@ func (site *DexSite) init() {
 
 	enabledSrc, err := ioutil.ReadFile(site.DexEnabledFile)
 	if err != nil {
+		// TODO: catch funky Windows error here
+		log.Println("site.DexPath:", site.DexPath)
+		log.Println("Error reading site.DexEnabledFile:", site.DexEnabledFile)
 		panic(err)
 	}
 

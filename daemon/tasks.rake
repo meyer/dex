@@ -15,9 +15,13 @@ task :pre_daemon do
 end
 
 desc "Build dexd binary"
-task :build => [:pre_daemon] do
-  daemon_dest = File.join(BUILD_DIR, "dexd")
-  system "go build -o #{daemon_dest.shellescape} -ldflags \"#{ldflags}\" *.go"
+task :build => [:pre_daemon, :set_dev_env] do
+  daemon_dest_osx = File.join(BUILD_DIR, "dexd")
+  daemon_dest_win = File.join(BUILD_DIR, "dexd.exe")
+  puts "Building OSX binary..."
+  system "go build -o #{daemon_dest_osx.shellescape} -ldflags \"#{ldflags}\" *.go"
+  puts "Building Windows binary..."
+  system "GOOS=windows GOARCH=386 go build -o #{daemon_dest_win.shellescape} -ldflags \"#{ldflags}\" *.go"
 end
 
 desc "Run dexd from source"
