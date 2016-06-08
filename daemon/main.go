@@ -67,7 +67,7 @@ func main() {
 		r := mux.NewRouter()
 
 		r.HandleFunc("/", ImmediatelyExpire(indexHandler))
-		r.HandleFunc("/config.json", ImmediatelyExpire(configHandler))
+		r.HandleFunc("/{cachebuster:\\d+}/config.json", ImmediatelyExpire(configHandler))
 		r.HandleFunc("/{cachebuster:\\d+}/empty.{ext:(js|css)}", NeverExpire(emptyHandler))
 		r.HandleFunc("/{cachebuster:\\d+}/{hostname:(global|.+\\.[^\\.]+)}.{ext:(js|css)}", NeverExpire(dexfileHandler))
 

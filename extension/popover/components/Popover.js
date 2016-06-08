@@ -84,7 +84,7 @@ const Popover = React.createClass({
   fetchData() {
     this.setState({xhrError: false, loading: true})
 
-    xhr.get(`${dexURL}/config.json`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}/${Date.now()}/config.json`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError)
       }
@@ -102,7 +102,7 @@ const Popover = React.createClass({
     console.info('moduleName:', moduleName)
     this.setState({xhrError: false, loading: true})
 
-    xhr.get(`${dexURL}/config.json?toggle=${moduleName}&hostname=${hostname}`, {json: true}, function (xhrError, resp, data) {
+    xhr.get(`${dexURL}/${Date.now()}/config.json?toggle=${moduleName}&hostname=${hostname}`, {json: true}, function (xhrError, resp, data) {
       if (xhrError) {
         console.error(xhrError)
         this.setState({xhrError, loading: false})
