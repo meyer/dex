@@ -3,9 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/golang/glog"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/user"
 	"path/filepath"
@@ -30,8 +30,8 @@ func (site *DexSite) init() {
 	enabledSrc, err := ioutil.ReadFile(site.DexEnabledFile)
 	if err != nil {
 		// TODO: catch funky Windows error here
-		log.Println("site.DexPath:", site.DexPath)
-		log.Println("Error reading site.DexEnabledFile:", site.DexEnabledFile)
+		glog.Error("site.DexPath:", site.DexPath)
+		glog.Error("Error reading site.DexEnabledFile:", site.DexEnabledFile)
 		panic(err)
 	}
 
@@ -102,12 +102,12 @@ func getFilesAtPath(dirPath string, ext string) []string {
 	fileArray := []string{}
 	files, err := ioutil.ReadDir(dirPath)
 	if err != nil {
-		// log.Println("Error!", err)
+		// glog.V(1).Error("Error!", err)
 		return fileArray
 	}
 
 	if len(files) == 0 {
-		// log.Println("No " + ext + " files in " + dirPath)
+		glog.V(2).Info("No " + ext + " files in " + dirPath)
 		return fileArray
 	}
 
@@ -120,11 +120,11 @@ func getFilesAtPath(dirPath string, ext string) []string {
 				continue
 			}
 
-			// log.Println(" - " + filePath)
+			glog.V(3).Info(" - " + filePath)
 
 			fileSrc, err := ioutil.ReadFile(filePath)
 			if err != nil {
-				log.Fatal(err)
+				glog.Fatal(err)
 				continue
 			}
 
@@ -154,15 +154,15 @@ func (site *DexSite) getFile(ext string) []byte {
 
 	// Update config object with enabled modules
 	if enabledModules, hasEnabled := site.yamlConfig[site.url]; hasEnabled {
-		// log.Println("Enabled modules for " + site.url + ":")
+		glog.V(2).Info("Enabled modules for " + site.url + ":")
 		for _, k := range enabledModules {
-			// log.Println(" - module:", k)
+			glog.V(2).Info(" - module:", k)
 			dirPath := filepath.Join(site.DexPath, k)
 
 			fileSlice = append(fileSlice, getFilesAtPath(dirPath, ext)...)
 		}
 	} else {
-		// log.Println("No enabled modules for " + site.url + ".")
+		glog.V(2).Info("No enabled modules for " + site.url + ".")
 	}
 
 	if len(fileSlice) == 0 {
@@ -176,7 +176,7 @@ func stringifyOrDie(o interface{}) []byte {
 	jsonString, err := json.MarshalIndent(o, "", "  ")
 
 	if err != nil {
-		log.Fatal(err)
+		glog.Fatal(err)
 		return nil
 	}
 
@@ -204,7 +204,7 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 	if enabledModules, hasEnabled := site.yamlConfig[site.url]; hasEnabled {
 		for i, module := range enabledModules {
 			if module == toggledModule {
-				// log.Println("Disabled " + toggledModule + " for " + site.url)
+				glog.V(1).Info("Disabled " + toggledModule + " for " + site.url)
 				payload["action"] = "disabled"
 				payload["status"] = "success"
 				payload["message"] = "Disabled " + toggledModule + " for " + site.url
@@ -215,7 +215,7 @@ func (site *DexSite) toggleModule(toggledModule string) []byte {
 	}
 
 	if _, e := payload["action"]; !e {
-		// log.Println("Enabled " + toggledModule + " for " + site.url)
+		glog.V(1).Info("Enabled " + toggledModule + " for " + site.url)
 		payload["action"] = "enabled"
 		payload["status"] = "success"
 		payload["message"] = "Enabled " + toggledModule + " for " + site.url

@@ -25,8 +25,8 @@ task :build => [:pre_daemon, :set_dev_env] do
 end
 
 desc "Run dexd from source"
-task :run => [:pre_daemon] do
-  system "go run -ldflags \"#{ldflags}\" *.go -run"
+task :run => [:pre_daemon, :set_dev_env] do
+  system "go run -ldflags \"#{ldflags}\" *.go -run -v=2 -logtostderr=true"
 end
 
 desc "Compile ./ssl/ to ./ssl.go"

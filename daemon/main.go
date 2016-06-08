@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"flag"
+	"github.com/golang/glog"
 	"github.com/gorilla/mux"
 	"github.com/kardianos/osext"
-	"log"
 	"net/http"
 	"os"
 	"os/user"
@@ -17,8 +17,6 @@ import (
 var (
 	runPtr     = flag.Bool("run", false, "start dexd "+dexVersion)
 	installPtr = flag.Bool("install", false, "install launch agent")
-	verbosePtr = flag.Bool("verbose", false, "enable verbose mode")
-	//
 	dexVersion string
 	dexPort    string
 )
@@ -44,17 +42,17 @@ func main() {
 		}
 		tlsConfig.Certificates[0] = keyPair
 
-		log.Println("dexd " + dexVersion + " at your service")
+		glog.Info("dexd " + dexVersion + " at your service")
 		server := &http.Server{
 			Addr:      dexPort,
 			Handler:   r,
 			TLSConfig: tlsConfig,
 		}
 		err := server.ListenAndServeTLS("", "")
-		log.Fatal(err)
+		glog.Fatal(err)
 
 	case *installPtr:
-		log.Println("Installing launch agent to ~/Library/LaunchAgents")
+		glog.Info("Installing launch agent to ~/Library/LaunchAgents")
 		plist_asset, _ := Asset("assets/launchagent.plist")
 		plist_template, err := template.New("launchagent").Parse(string(plist_asset))
 		if err != nil {
@@ -84,8 +82,8 @@ func main() {
 		defer f.Close()
 
 		f.WriteString(s)
-		log.Println("Wrote to "+launchAgentFile+":\n", s)
-		log.Println("\nTo start dexd:\n  launchctl load -w " + launchAgentFile)
+		glog.Info("Wrote to "+launchAgentFile+":\n", s)
+		glog.Info("\nTo start dexd:\n  launchctl load -w " + launchAgentFile)
 
 	default:
 		flag.PrintDefaults()
