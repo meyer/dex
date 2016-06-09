@@ -50,15 +50,16 @@ task :ask_for_new_version_number do
     if new_version_comp > old_version_comp
       puts "good"
       PKG["version"] = new_version
-      PKG["last_release"] = PKG["build"]
-      update_pkg
-      update_env
     else
       puts "Error: new version number must be greater than #{PKG["version"]}"
     end
   else
-    puts "Error: invalid version number!"
+    puts "Error: invalid version number! Version number was not incremented."
   end
+
+  PKG["last_release"] = PKG["build"]
+  update_pkg
+  update_env
 end
 
 task :run_chrome_unsafe do

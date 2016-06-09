@@ -33,7 +33,7 @@ Modules live inside a folder called `.dex` in your home folder.
 
 # Installation
 
-**Dex daemon:** You can run the Dex daemon right away with `./dexd -run`. If you’re on OSX and you want the Dex daemon to launch automatically on system start, run `./dexd -install` to install the LaunchAgent. Worth nothing: the Dex daemon will launch from whatever directory it’s currently in.
+**Dex daemon:** `dexd` is available as a Homebrew tap. Run `brew install meyer/dex/dexd`, then `dexd -install` to install the launchagent so that dexd will start when your computer boots up.
 
 **Browser extension:** You can find the Dex extension on the [Chrome Web Store][dex-ext].
 
