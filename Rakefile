@@ -30,9 +30,12 @@ def update_pkg
 end
 
 task :set_dev_env do
-  ENV["NODE_ENV"] = "development"
-  PKG["build"] += 1
-  update_pkg
+  if ENV["NODE_ENV"] != "production"
+    ENV["NODE_ENV"] = "development"
+    PKG["build"] += 1
+    update_pkg
+  end
+
   update_env
 end
 
@@ -57,7 +60,9 @@ task :ask_for_new_version_number do
     puts "Error: invalid version number! Version number was not incremented."
   end
 
+  PKG["build"] += 1
   PKG["last_release"] = PKG["build"]
+
   update_pkg
   update_env
 end
