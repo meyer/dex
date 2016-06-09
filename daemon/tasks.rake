@@ -2,6 +2,7 @@ require "json"
 require "shellwords"
 
 DAEMON_DIR = File.dirname(__FILE__)
+CERT_DIR = File.expand_path("/usr/local/var/dexd")
 
 def ldflags
   {
@@ -15,18 +16,25 @@ task :pre_daemon do
 end
 
 desc "Build dexd binary"
-task :build => [:pre_daemon, :set_dev_env] do
-  daemon_dest_osx = File.join(BUILD_DIR, "dexd")
-  daemon_dest_win = File.join(BUILD_DIR, "dexd.exe")
-  puts "Building OSX binary..."
-  system "go build -o #{daemon_dest_osx.shellescape} -ldflags \"#{ldflags}\" *.go"
-  puts "Building Windows binary..."
-  system "GOOS=windows GOARCH=386 go build -o #{daemon_dest_win.shellescape} -ldflags \"#{ldflags}\" *.go"
+task :build => ["build:osx", "build:win"]
+
+namespace :build do
+  task :osx => [:pre_daemon, :set_dev_env] do
+    daemon_dest_osx = File.join(BUILD_DIR, "dexd")
+    puts "Building OSX binary..."
+    system "go build -o #{daemon_dest_osx.shellescape} -ldflags \"#{ldflags}\" *.go"
+  end
+
+  task :win => [:pre_daemon, :set_dev_env] do
+    daemon_dest_win = File.join(BUILD_DIR, "dexd.exe")
+    puts "Building Windows binary..."
+    system "GOOS=windows GOARCH=386 go build -o #{daemon_dest_win.shellescape} -ldflags \"#{ldflags}\" *.go"
+  end
 end
 
 desc "Run dexd from source"
 task :run => [:pre_daemon, :set_dev_env] do
-  system "go run -ldflags \"#{ldflags}\" *.go -run -v=2 -logtostderr=true"
+  system "go run -ldflags \"#{ldflags}\" *.go -v=2 -logtostderr=true -cert_dir=#{CERT_DIR.shellescape}"
 end
 
 desc "Compile ./ssl/ to ./ssl.go"
