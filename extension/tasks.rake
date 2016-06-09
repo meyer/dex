@@ -39,20 +39,9 @@ namespace :chrome do
   desc "Build extension for Google Chrome"
   task :build => [:generate_popover, :webpack, :copy_assets, "chrome:update_manifest"]
 
-  task :pack => [:pre_ext] do
+  task :zip => [:pre_ext] do
     Dir.chdir BUILD_DIR
-
-    chrome_path = File.expand_path("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-
-    system [
-      chrome_path.shellescape,
-      {
-        "pack-extension" => EXT_BUILD_DIR.shellescape,
-        "pack-extension-key" => File.expand_path("dex-chrome.pem", EXT_DIR).shellescape,
-      }.map {|k,v| "--#{k}=#{v}"},
-    ].join(" ")
-
-    mv "extension-temp.crx", "dex.crx"
+    system "zip -r extension-temp.zip extension-temp"
   end
 
   task :update_manifest => [:pre_ext] do

@@ -7,17 +7,7 @@ It’s a two-part system:
 1. A tiny little **daemon** that serves blobs of CSS and JS.
 2. A **browser extension** for Chrome that loads those blobs into your browser.
 
-## Installation
-
-**Dex daemon:** You can run the Dex daemon right away with `./dexd.rb --run`. If you want the Dex daemon to launch automatically on system start, run `./dexd.rb --install` to install the LaunchAgent. Worth nothing: the Dex daemon will launch from whatever directory it’s currently in.
-
-**Browser extension:** Open `chrome://extensions` and drag the Dex `crx` file from the `extensions` folder over to the window.
-
-Make a folder called `.dex` in your home folder or better yet, symlink `~/.dex` to a more sensible location on your hard drive. I symlinked `~/.dex` to [`~/Repositories/dexfiles`](https://github.com/meyer/dexfiles).
-
-
-
-# Modules: The core of Dex
+## Modules: The core of Dex
 
 Every time you visit a URL, the Dex browser extension loads CSS and JavaScript files for that specific domain. These files are built based on **modules** that you have enabled in the Dex extension popover.
 
@@ -37,14 +27,22 @@ Modules live inside a folder called `.dex` in your home folder.
 
   * :earth_africa: **Global module**: If you want to modify *every site you visit*, you’ll want to put the module inside a folder called `global`. Enabled global modules are loaded for *every website* you visit, so don’t go too crazy.
 
-  * :hammer: **Utility module**: If you want to modify any particular site, but *not all sites*, you’ll want to put the module inside a folder called `utilities`. Utility modules show up as regular site-specific modules in the Dex popover, but enabling a utility module will only enable it for the specific domain that you’ve browsed to.
+  * :hammer: **Utility module**: If you want a module to be available to any site, but you want it affect sites on an individual basis, put the module inside a folder called `utilities`. Utility modules show up as regular site-specific modules in the Dex popover, but enabling a utility module will only enable it for the specific domain that you’ve browsed to.
 
-4. Visit the URL you want to modify, open the Dex popover menu, and click the switch next to `Change body background to red` to enable the module. *Whammy.*
+4. Visit the URL you want to modify, open the Dex popover menu, and click the switch next to whatever modules you want to enable. *Whammy.*
+
+# Installation
+
+**Dex daemon:** You can run the Dex daemon right away with `./dexd -run`. If you’re on OSX and you want the Dex daemon to launch automatically on system start, run `./dexd -install` to install the LaunchAgent. Worth nothing: the Dex daemon will launch from whatever directory it’s currently in.
+
+**Browser extension:** You can find the Dex extension on the [Chrome Web Store][dex-ext].
+
+Make a folder called `.dex` in your home folder or better yet, symlink `~/.dex` to a more sensible location on your hard drive. I symlinked `~/.dex` to [`~/Repositories/dexfiles`](https://github.com/meyer/dexfiles).
 
 
-## Good Things 2 Know
+# Good Things 2 Know
 
-### File Load Order
+## File Load Order
 
 Dex loads files in the following order:
 
@@ -54,7 +52,7 @@ Dex loads files in the following order:
 4. `example.com/*/*.{css,js}`
 
 
-### Debugging
+## Debugging
 
 Two JS files and two CSS files are loaded for each domain. For `github.com`, the following files would be loaded:
 
@@ -72,6 +70,7 @@ Got a problem or a suggestion? Here’s how to get ahold of me, in preferred ord
 2. Send me an email: [email][]
 999. Bug me on Twitter: [@meyer][]
 
+[dex-ext]: https://chrome.google.com/webstore/detail/dex/bhnndpnickkeineeinnjdbgdngmhfgno
 [@meyer]: http://twitter.com/meyer
 [email]: mailto:github.com+dex@meyer.fm
 [issues]: https://github.com/meyer/dex-ext/issues

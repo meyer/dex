@@ -73,6 +73,6 @@ task :build => [:set_dev_env, "ext:chrome:build", "daemon:build"]
 task :release => [
   :ask_for_new_version_number,
   "ext:chrome:build",
-  "ext:chrome:pack",
-  "daemon:build"
+  "ext:chrome:zip",
+  "daemon:build",
 ]

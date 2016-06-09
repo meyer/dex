@@ -1,6 +1,6 @@
 GOPATH="/usr/local/bin/go"
 
-exclude="{$exclude,extension/build}"
+exclude="{$exclude,build/extension-temp}"
 
 ["*.js"]
 softTabs = true
