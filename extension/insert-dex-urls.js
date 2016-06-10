@@ -17,16 +17,16 @@ import setDexFileURLs from './lib/setDexFileURLs'
   }
 
   const hostJS = document.createElement('script')
-  const hostCSS = document.createElement('link')
   const globalJS = document.createElement('script')
+  const hostCSS = document.createElement('link')
   const globalCSS = document.createElement('link')
 
   hostCSS.rel = 'stylesheet'
   globalCSS.rel = 'stylesheet'
 
   document.documentElement.appendChild(hostJS)
-  document.documentElement.appendChild(hostCSS)
   document.documentElement.appendChild(globalJS)
+  document.documentElement.appendChild(hostCSS)
   document.documentElement.appendChild(globalCSS)
 
   setDexFileURLs(hostname, hostJS, hostCSS)

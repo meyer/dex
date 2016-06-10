@@ -8,14 +8,16 @@ PKG = JSON.parse(File.read(PKG_FILE))
 BUILD_DIR = File.expand_path("build", PROJECT_DIR)
 
 ENV["DEX_URL"] = "https://#{PKG["dex"]["host"]}:#{PKG["dex"]["port"]}"
+ENV["NODE_ENV"] ||= "development"
 
-def update_env
-  ENV["NODE_ENV"] ||= "production"
-  # regex strips off semver shit
+def update_version
   ENV["DEX_VERSION"] = "#{PKG["version"][/^\d+\.\d+\.\d+/]}.#{PKG["build"] - PKG["last_release"]}"
 end
+update_version
 
-update_env
+def update_pkg
+  File.open(PKG_FILE, "w") {|f| f.puts(JSON.pretty_generate(PKG))}
+end
 
 namespace :ext do
   load File.join(PROJECT_DIR, "extension/tasks.rake")
@@ -25,46 +27,34 @@ namespace :daemon do
   load File.join(PROJECT_DIR, "daemon/tasks.rake")
 end
 
-def update_pkg
-  File.open(PKG_FILE, "w") {|f| f.puts(JSON.pretty_generate(PKG))}
-end
-
 task :set_dev_env do
-  if ENV["NODE_ENV"] != "production"
-    ENV["NODE_ENV"] = "development"
-    PKG["build"] += 1
-    update_pkg
-  end
+  $env_set = true
+  ENV["NODE_ENV"] = "development"
+  PKG["build"] += 1
 
-  update_env
+  update_pkg
+  update_version
 end
 
-task :ask_for_new_version_number do
+task :set_prod_env do
+  $env_set = true
   ENV["NODE_ENV"] = "production"
-  update_env
-
-  puts "Current #{PKG["name"]} version: #{PKG["version"]}"
-  print "New #{PKG["name"]} version: "
-  new_version = STDIN.gets.chomp!
-
-  if /\d+\.\d+\.\d+/.match(new_version)
-    old_version_comp = Integer(PKG["version"].gsub(/\./, "000"))
-    new_version_comp = Integer(new_version.gsub(/\./, "000"))
-    if new_version_comp > old_version_comp
-      puts "good"
-      PKG["version"] = new_version
-    else
-      puts "Error: new version number must be greater than #{PKG["version"]}"
-    end
-  else
-    puts "Error: invalid version number! Version number was not incremented."
-  end
-
   PKG["build"] += 1
   PKG["last_release"] = PKG["build"]
 
   update_pkg
-  update_env
+  update_version
+end
+
+task :env_warn => [:print_info_header] do
+  if !$env_set
+    puts "Ayyyy, env methods haven't been set. Build number will not be incremented."
+  end
+end
+
+task :print_info_header do
+  puts "NODE_ENV:    #{ENV["NODE_ENV"]}"
+  puts "DEX_VERSION: #{ENV["DEX_VERSION"]} (#{PKG["version"]})"
 end
 
 task :run_chrome_unsafe do
@@ -74,10 +64,17 @@ task :run_chrome_unsafe do
   ].shelljoin
 end
 
-task :build => [:set_dev_env, "ext:chrome:build", "daemon:build"]
+task :build => [
+  :set_dev_env,
+  :print_info_header,
+  "ext:chrome:build",
+  "ext:chrome:zip",
+  "daemon:build",
+]
 
 task :release => [
-  :ask_for_new_version_number,
+  :set_prod_env,
+  :print_info_header,
   "ext:chrome:build",
   "ext:chrome:zip",
   "daemon:build",

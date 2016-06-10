@@ -5,7 +5,7 @@ EXT_DIR = File.dirname(__FILE__)
 
 EXT_BUILD_DIR = File.join(BUILD_DIR, "extension-temp")
 
-task :pre_ext do
+task :pre_ext => [:env_warn] do
   puts "NODE_ENV: #{ENV["NODE_ENV"]}"
   Dir.chdir EXT_DIR
 end

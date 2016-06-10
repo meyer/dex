@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	certPtr    = flag.String("cert_dir", "", "path to the folder that contains cert.pem and key.pem")
-	dexVersion string
-	dexPort    string
+	certPtr      = flag.String("cert_dir", "", "path to the folder that contains cert.pem and key.pem")
+	overwritePtr = flag.Bool("overwrite", false, "overwrite generated SSL certs")
+	dexVersion   string
+	dexPort      string
 )
 
 func main() {

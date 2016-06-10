@@ -5,13 +5,17 @@ DAEMON_DIR = File.dirname(__FILE__)
 CERT_DIR = File.expand_path("/usr/local/var/dexd")
 
 def ldflags
+  dexVersion = ENV["DEX_VERSION"]
+  if ENV["NODE_ENV"] == "development"
+    dexVersion = "#{dexVersion}.#{}"
+  end
   {
     "dexVersion" => ENV["DEX_VERSION"],
     "dexPort" => ":#{PKG["dex"]["port"]}",
   }.map {|k,v| "-X main.#{k}=#{v}"}.join(" ")
 end
 
-task :pre_daemon do
+task :pre_daemon => [:env_warn] do
   Dir.chdir DAEMON_DIR
 end
 
@@ -19,13 +23,13 @@ desc "Build dexd binary"
 task :build => ["build:osx", "build:win"]
 
 namespace :build do
-  task :osx => [:pre_daemon, :set_dev_env] do
+  task :osx => [:pre_daemon] do
     daemon_dest_osx = File.join(BUILD_DIR, "dexd")
     puts "Building OSX binary..."
     system "go build -o #{daemon_dest_osx.shellescape} -ldflags \"#{ldflags}\" *.go"
   end
 
-  task :win => [:pre_daemon, :set_dev_env] do
+  task :win => [:pre_daemon] do
     daemon_dest_win = File.join(BUILD_DIR, "dexd.exe")
     puts "Building Windows binary..."
     system "GOOS=windows GOARCH=386 go build -o #{daemon_dest_win.shellescape} -ldflags \"#{ldflags}\" *.go"
@@ -33,7 +37,7 @@ namespace :build do
 end
 
 desc "Run dexd from source"
-task :run => [:pre_daemon, :set_dev_env] do
+task :run => [:pre_daemon] do
   system "go run -ldflags \"#{ldflags}\" *.go -v=2 -logtostderr=true -cert_dir=#{CERT_DIR.shellescape}"
 end
 
