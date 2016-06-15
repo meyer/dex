@@ -2,9 +2,15 @@ import React from 'react'
 import {Block} from 'jsxstyle'
 
 export default function Switch(props) {
-  const switchSize = 12
-  const switchTravel = 8
-  const switchPadding = 1
+  const {
+    switchSize,
+    switchTravel,
+    switchPadding,
+    enabled,
+    editable,
+    onClick,
+    ...styleProps,
+  } = props
 
   const switchBackgroundStyle = {
     backgroundColor: 'rgba(0,0,0,0.05)',
@@ -16,21 +22,21 @@ export default function Switch(props) {
     position: 'relative',
     cursor: 'pointer',
     transition: 'background-color 180ms ease-in-out 80ms',
-    ...props,
+    ...styleProps,
   }
 
-  if (props.enabled && props.editable) {
+  if (enabled && editable) {
     switchBackgroundStyle.backgroundColor = 'rgb(130,220,90)'
   }
 
-  if (!props.editable) {
+  if (!editable) {
     switchBackgroundStyle.backgroundColor = 'rgb(228, 90, 71)'
   }
 
   return (
     <div
       style={switchBackgroundStyle}
-      onClick={props.onClick}>
+      onClick={onClick}>
       <Block
         height={switchSize}
         width={switchSize}
@@ -38,7 +44,7 @@ export default function Switch(props) {
         left={switchPadding}
         top={switchPadding}
         transition="transform 140ms ease-in-out"
-        transform={props.enabled ? `translateX(${switchTravel}px)` : null}
+        transform={enabled ? `translateX(${switchTravel}px)` : null}
         position="absolute"
         backgroundColor="#FFF"
         backgroundImage="linear-gradient(to bottom, rgba(0,0,0,0) 40%, rgba(0,0,0,0.05))"
@@ -49,7 +55,16 @@ export default function Switch(props) {
 }
 
 Switch.propTypes = {
+  switchSize: React.PropTypes.number.isRequired,
+  switchTravel: React.PropTypes.number.isRequired,
+  switchPadding: React.PropTypes.number.isRequired,
   enabled: React.PropTypes.bool,
   editable: React.PropTypes.bool,
   onClick: React.PropTypes.func,
+}
+
+Switch.defaultProps = {
+  switchSize: 12,
+  switchTravel: 8,
+  switchPadding: 1,
 }
