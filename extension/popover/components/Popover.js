@@ -2,11 +2,12 @@
 
 // Modules
 import React from 'react'
-import {InlineBlock, Block} from 'jsxstyle'
+import {Block} from 'jsxstyle'
 import xhr from 'xhr'
 
 // Components
 import Switch from './Switch'
+import Badge from './Badge'
 
 // Utils
 import getValidHostname from '../../lib/getValidHostname'
@@ -152,33 +153,12 @@ const Popover = React.createClass({
       let badge, editable = true
 
       const [modCategory, modName] = k.split('/')
-      let prefix
-
       if (modCategory === 'utilities') {
-        badge = (
-          <InlineBlock
-            flexGrow={0}
-            flexShrink={0}
-            fontSize={8.8}
-            height={12}
-            lineHeight="12px"
-            fontWeight={700}
-            color="rgba(0,0,0,0.4)"
-            textTransform="uppercase"
-            padding="0 3px"
-            marginRight={6}
-            borderRadius={2}
-            backgroundColor="#FFF"
-            boxShadow="0 0 0 1px rgba(0,0,0,0.14)">
-            Utility
-          </InlineBlock>
-        )
+        badge = <Badge>Utility</Badge>
       } else {
         editable = !!~availableMods.indexOf(k)
         if (modCategory != hostname) {
-          prefix = (
-            <span style={{opacity: 0.4}}>{modCategory} / </span>
-          )
+          badge = <Badge>{modCategory}</Badge>
         }
       }
 
@@ -188,7 +168,6 @@ const Popover = React.createClass({
           display: 'flex',
           alignItems: 'center',
           key: `${hostname}-${k}-${idx}`,
-          component: 'li',
           position: 'relative',
           fontSize: 12,
           lineHeight: '14px',
@@ -202,7 +181,6 @@ const Popover = React.createClass({
             padding="1px 0"
             flexGrow={1}
             flexShrink={1}>
-            {prefix}
             {modName}
           </Block>
           <Block
