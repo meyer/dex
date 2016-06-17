@@ -57,13 +57,6 @@ task :print_info_header do
   puts "DEX_VERSION: #{ENV["DEX_VERSION"]} (#{PKG["version"]})"
 end
 
-task :run_chrome_unsafe do
-  system [
-    File.expand_path("~/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
-    "--disable-web-security"
-  ].shelljoin
-end
-
 task :build => [
   :set_dev_env,
   :print_info_header,

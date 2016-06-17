@@ -2,7 +2,7 @@
 
 // Modules
 import React from 'react'
-import {Block} from 'jsxstyle'
+import {Block, Flex, Inline} from 'jsxstyle'
 import xhr from 'xhr'
 
 // Components
@@ -29,6 +29,15 @@ const Popover = React.createClass({
     }
   },
 
+  getHostnameFromHash() {
+    if (window.location.hash.length === 0) {
+      window.location.hash = 'test.dex.meyer.fm'
+    }
+    const hostname = getValidHostname('http://' + window.location.hash.slice(1))
+    console.info('Setting hostname to', hostname)
+    this.setState({hostname})
+  },
+
   setHostname() {
     // Chrome extension
     if (
@@ -44,20 +53,19 @@ const Popover = React.createClass({
 
     // Demotron
     } else {
-      // Testing this requires running Chrome with --disable-web-security
-      // rake run_chrome_unsafe
-      const hostname = getValidHostname('http://test.dex.meyer.fm')
-      this.setState({hostname})
+      this.getHostnameFromHash()
+      window.addEventListener('hashchange', () => this.getHostnameFromHash())
     }
   },
 
-  updateLastModifiedDate(hostname) {
+  updateLastModifiedDateForHostname(hostname) {
     if (
       typeof window === 'undefined' ||
       typeof window.chrome !== 'object' ||
       typeof window.chrome.tabs !== 'object' ||
       !window.chrome.tabs.query
     ) {
+      console.error('Cannot update hostname cachebuster: window.chrome.tabs.query is unavailable')
       return
     }
 
@@ -120,7 +128,7 @@ const Popover = React.createClass({
             xhrError: false,
             loading: false,
           })
-          this.updateLastModifiedDate(hostname)
+          this.updateLastModifiedDateForHostname(hostname)
         } else {
           this.setState({xhrError: false, loading: false})
           console.error(data.message)
@@ -129,7 +137,7 @@ const Popover = React.createClass({
     }.bind(this))
   },
 
-  buildChildrenForDomain(hostname) {
+  buildChildrenForHostname(hostname) {
     if (!this.state.data) {
       console.info(`No data for "${hostname}"`)
       return null
@@ -138,6 +146,14 @@ const Popover = React.createClass({
     const {available, enabled} = this.state.data
     const children = []
     let domains = [hostname]
+
+    const refreshButton = (
+      <button
+        style={{alignSelf: 'flex-end'}}
+        onClick={() => this.updateLastModifiedDateForHostname(hostname)}>
+        Refresh
+      </button>
+    )
 
     if (hostname != 'global') {
       // split sub.domain.com into [sub.domain.com, domain.com, com]
@@ -164,18 +180,18 @@ const Popover = React.createClass({
 
       // TODO: fix jsxtyle bug with `display` not being set
       children.push(
-        <li key={k} style={{
-          display: 'flex',
-          alignItems: 'center',
-          key: `${hostname}-${k}-${idx}`,
-          position: 'relative',
-          fontSize: 12,
-          lineHeight: '14px',
-          backgroundColor: '#FFF',
-          marginTop: 1,
-          marginBottom: 1,
-          padding: '6px 8px',
-        }}>
+        <Flex
+          component="li"
+          display="flex"
+          alignItems="center"
+          key={`${hostname}-${k}-${idx}`}
+          position="relative"
+          fontSize={12}
+          lineHeight="14px"
+          backgroundColor="#FFF"
+          marginTop={1}
+          marginBottom={1}
+          padding="6px 8px">
           {badge}
           <Block
             padding="1px 0"
@@ -193,33 +209,35 @@ const Popover = React.createClass({
               editable={editable}
             />
           </Block>
-        </li>
+        </Flex>
       )
     }.bind(this))
 
+    // TODO: Make this not suck
     if (children.length === 0) {
       return (
-        <Block
-          padding={20}>
-          No modules exist for <strong>{hostname}</strong>.
-        </Block>
+        <Flex padding={20}>
+          <span>No modules exist for <strong>{hostname}</strong>.</span>
+          {refreshButton}
+        </Flex>
       )
     }
 
     return (
       <Block>
-        <Block
+        <Flex
+          alignItems="center"
           component="h1"
           padding="4px 8px"
           textTransform="uppercase"
-          fontSize={10.5}
+          fontSize={11}
           lineHeight="12px"
           letterSpacing={1}>
-          {hostname}
-        </Block>
+          <Inline
+            flexGrow={1}>{hostname}</Inline>
+          {refreshButton}
+        </Flex>
         <Block
-          display="flex"
-          flexDirection="row"
           component="ul"
           backgroundColor="rgba(0,0,0,0.04)"
           overflow="hidden">
@@ -252,8 +270,8 @@ const Popover = React.createClass({
       <Block
         width="100%"
         padding="4px 0">
-        <Block marginBottom={8}>{this.buildChildrenForDomain(this.state.hostname)}</Block>
-        <Block>{this.buildChildrenForDomain('global')}</Block>
+        <Block marginBottom={8}>{this.buildChildrenForHostname(this.state.hostname)}</Block>
+        <Block>{this.buildChildrenForHostname('global')}</Block>
       </Block>
     )
   },
