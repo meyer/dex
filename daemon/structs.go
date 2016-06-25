@@ -133,24 +133,41 @@ func (site *DexSite) getFileForHostname(ext string, hostname string) []byte {
 	// Add root-level site files
 	fileSlice := getFilesAtPath(filepath.Join(site.DexPath, hostname), ext)
 
-	// Update config object with enabled modules
-	if enabledModules, hasEnabled := site.yamlConfig[hostname]; hasEnabled {
-		glog.V(2).Info("Enabled modules for " + hostname + ":")
-		for _, k := range enabledModules {
-			glog.V(2).Info(" - module:", k)
-			dirPath := filepath.Join(site.DexPath, k)
+	hostnameBits := strings.Split(hostname, ".")
+	hostnames := []string{hostname}
+	headingBits := []string{"/*"}
 
-			fileSlice = append(fileSlice, getFilesAtPath(dirPath, ext)...)
+	if ct := len(hostnameBits); ct > 2 {
+		for idx, _ := range hostnameBits {
+			// Skip last element to avoid star on full hostname
+			if idx == 0 {
+				continue
+			}
+			potentialHostname := strings.Join(hostnameBits[idx:], ".")
+			hostnames = append([]string{"*." + potentialHostname}, hostnames...)
 		}
-	} else {
-		glog.V(2).Info("No enabled modules for " + hostname + ".")
+	}
+
+	for _, hn := range hostnames {
+		// Update config object with enabled modules
+		if enabledModules, hasEnabled := site.yamlConfig[hn]; hasEnabled {
+			headingBits = append(headingBits, " * Enabled modules for "+hn+":")
+			for _, k := range enabledModules {
+				headingBits = append(headingBits, " * - "+k)
+				dirPath := filepath.Join(site.DexPath, k)
+
+				fileSlice = append(fileSlice, getFilesAtPath(dirPath, ext)...)
+			}
+		} else {
+			glog.V(2).Info("No enabled modules for " + hn + ".")
+		}
 	}
 
 	if len(fileSlice) == 0 {
 		return nil
 	}
-
-	return []byte(strings.Join(fileSlice, "\n\n"))
+	headingBits = append(headingBits, " */")
+	return []byte(strings.Join(headingBits, "\n") + "\n\n" + strings.Join(fileSlice, "\n\n"))
 }
 
 func stringifyOrDie(o interface{}) []byte {
