@@ -27,29 +27,17 @@ namespace :daemon do
   load File.join(PROJECT_DIR, "daemon/tasks.rake")
 end
 
-task :set_dev_env do
-  $env_set = true
-  ENV["NODE_ENV"] = "development"
+task :increment_build_number do
   PKG["build"] += 1
-
   update_pkg
   update_version
 end
 
-task :set_prod_env do
-  $env_set = true
+task :set_prod_env => [:increment_build_number] do
   ENV["NODE_ENV"] = "production"
-  PKG["build"] += 1
   PKG["last_release"] = PKG["build"]
 
   update_pkg
-  update_version
-end
-
-task :env_warn => [:print_info_header] do
-  if !$env_set
-    puts "Ayyyy, env methods haven't been set. Build number will not be incremented."
-  end
 end
 
 task :print_info_header do
@@ -58,7 +46,6 @@ task :print_info_header do
 end
 
 task :build => [
-  :set_dev_env,
   :print_info_header,
   "ext:chrome:build",
   "ext:chrome:zip",

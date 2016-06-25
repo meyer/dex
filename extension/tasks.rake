@@ -5,8 +5,7 @@ EXT_DIR = File.dirname(__FILE__)
 
 EXT_BUILD_DIR = File.join(BUILD_DIR, "extension-temp")
 
-task :pre_ext => [:env_warn] do
-  puts "NODE_ENV: #{ENV["NODE_ENV"]}"
+task :pre_ext do
   Dir.chdir EXT_DIR
 end
 
@@ -39,7 +38,7 @@ namespace :chrome do
   desc "Build extension for Google Chrome"
   task :build => [:generate_popover, :webpack, :copy_assets, "chrome:update_manifest"]
 
-  task :zip => [:pre_ext] do
+  task :zip do
     Dir.chdir BUILD_DIR
     system "zip -r extension-temp.zip extension-temp"
   end

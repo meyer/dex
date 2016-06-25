@@ -15,7 +15,7 @@ def ldflags
   }.map {|k,v| "-X main.#{k}=#{v}"}.join(" ")
 end
 
-task :pre_daemon => [:env_warn] do
+task :pre_daemon do
   Dir.chdir DAEMON_DIR
 end
 
@@ -37,7 +37,7 @@ namespace :build do
 end
 
 desc "Run dexd from source"
-task :run => [:pre_daemon] do
+task :run => [:increment_build_number, :print_info_header, :pre_daemon] do
   system "go run -ldflags \"#{ldflags}\" *.go -v=2 -logtostderr=true -cert_dir=#{CERT_DIR.shellescape}"
 end
 
