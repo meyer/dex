@@ -1,5 +1,6 @@
 require "json"
 require "shellwords"
+require "tmpdir"
 
 DAEMON_DIR = File.dirname(__FILE__)
 CERT_DIR = File.expand_path("/usr/local/var/dexd")
@@ -41,21 +42,8 @@ task :run => [:increment_build_number, :print_info_header, :pre_daemon] do
   system "go run -ldflags \"#{ldflags}\" *.go -v=2 -logtostderr=true -cert_dir=#{CERT_DIR.shellescape}"
 end
 
-desc "Compile ./ssl/ to ./ssl.go"
-task :generate_assets => [:pre_daemon] do
-  # go get -u github.com/jteeuwen/go-bindata/...
-  system "$GOPATH/bin/go-bindata -o assets.go assets/"
-end
-
-desc "Generate SSL certs"
-task :ssl => [:pre_daemon] do
-  system [
-    "go",
-    "run",
-    "$(go env GOROOT)/src/crypto/tls/generate_cert.go",
-    "-ca",
-    "-start-date=\"Jan 1 00:00:00 2000\"",
-    "-duration=#{69 * 24 * 365}h0m0s",
-    "-host=\"localhost,127.0.0.1\"",
-  ].shelljoin
+desc "Run dexd from source"
+task :run_overwrite => [:increment_build_number, :print_info_header, :pre_daemon] do
+  tmp_dir = Dir.mktmpdir("dex")
+  system "go run -ldflags \"#{ldflags}\" *.go -v=2 -logtostderr=true -overwrite -cert_dir=#{tmp_dir.shellescape}"
 end
