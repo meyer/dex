@@ -13,13 +13,13 @@ Every time you visit a URL, the Dex browser extension loads CSS and JavaScript f
 
 What is a **module**? It’s a sensibly-named folder with some CSS and/or JS files that, when included on a webpage, accomplish a single task.
 
-Modules live inside a folder called `.dex` in your home folder.
+Modules live inside a folder called `.dex` in your home folder. I’m going to assume you’re the technical type and we’ll just call that `~/.dex/` from now on.
 
 ## Writing your first module
 
 1. Think about what you want this module to do, then create a folder with a succinct name based on what the module does. Want to make a website’s background red? A folder called `Change body background to red` would do the trick.
 
-2. Put CSS and JS files in the folder you just created.
+2. Put CSS and JS files in the folder you just created. Congrats, you just created a module! :tada:
 
 3. Think about what the scope of this module should be, then place it in one of three subfolders inside `~/.dex/`:
 
@@ -29,16 +29,17 @@ Modules live inside a folder called `.dex` in your home folder.
 
   * :hammer: **Utility module**: If you want a module to be available to any site, but you want it affect sites on an individual basis, put the module inside a folder called `utilities`. Utility modules show up as regular site-specific modules in the Dex popover, but enabling a utility module will only enable it for the specific domain that you’ve browsed to.
 
-4. Visit the URL you want to modify, open the Dex popover menu, and click the switch next to whatever modules you want to enable. *Whammy.*
+4. Visit the URL you want to modify, open the Dex popover menu, and click the switch next to whatever modules you want to enable. *Whammy.* There it is.
 
 # Installation
 
-**Dex daemon:** `dexd` is available as a Homebrew tap. Run `brew install meyer/dex/dexd`, then `dexd -install` to install the launchagent so that dexd will start when your computer boots up.
+* **Dex daemon:** `dexd` is available as a Homebrew tap. Run `brew install --HEAD meyer/dex/dexd`. Be sure to read the caveats. TLDR:
 
-**Browser extension:** You can find the Dex extension on the [Chrome Web Store][dex-ext].
+  * Make sure either a folder or a symlink to a folder exists at `~/.dex/`. I’ve symlinked `~/.dex/` to the [dexfiles folder][shameless self-promotion] in my Dropbox. Works quite nicely.
 
-Make a folder called `.dex` in your home folder or better yet, symlink `~/.dex` to a more sensible location on your hard drive. I symlinked `~/.dex` to [`~/Repositories/dexfiles`](https://github.com/meyer/dexfiles).
+  * If you want `dexd` to run on boot, run `brew services start meyer/dex/dexd` to install the launchagent.
 
+* **Browser extension:** You can find the Dex extension on the [Chrome Web Store][dex-ext].
 
 # Good Things 2 Know
 
@@ -64,13 +65,14 @@ Two JS files and two CSS files are loaded for each domain. For `github.com`, the
 If something isn’t showing up, check one of those files to see if the JS/CSS is in there.
 
 # Talk to me.
-Got a problem or a suggestion? Here’s how to get ahold of me, in preferred order:
+Got a problem or a suggestion?
 
 1. [Start an issue][issues].
 2. Send me an email: [email][]
-999. Bug me on Twitter: [@meyer][]
+3. Bug me on Twitter: [@meyer][]
 
-[dex-ext]: https://chrome.google.com/webstore/detail/dex/bhnndpnickkeineeinnjdbgdngmhfgno
+[dex-ext]: https://chrome.google.com/webstore/detail/dex/eclmkmapdnpgbaidmeoadgcfaaapahhn
 [@meyer]: http://twitter.com/meyer
 [email]: mailto:github.com+dex@meyer.fm
 [issues]: https://github.com/meyer/dex-ext/issues
+[shameless self-promotion]: https://github.com/meyer/dexfiles
